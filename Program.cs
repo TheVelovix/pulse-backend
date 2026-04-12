@@ -1,12 +1,14 @@
 using System.Net;
 using System.Text;
 using System.Threading.RateLimiting;
+using MaxMind.GeoIP2;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using pulse_backend.Data;
 using pulse_backend.Services;
+using UAParser;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -62,6 +64,8 @@ builder.Services.AddDbContext<MyDbContext>(options =>
     options.UseNpgsql(Environment.GetEnvironmentVariable("DB_URL"));
 });
 builder.Services.AddScoped<JwtService>();
+builder.Services.AddSingleton(new DatabaseReader("GeoData/GeoLite2-Country.mmdb"));
+builder.Services.AddSingleton(Parser.GetDefault());
 builder.Services.AddControllers();
 var app = builder.Build();
 

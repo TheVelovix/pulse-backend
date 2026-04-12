@@ -9,6 +9,7 @@ public class PageView
     public string? Device { get; set; }
     public string? Os { get; set; }
     public string? Country { get; set; }
+    public string? Browser { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public Project Project { get; set; } = null!;
