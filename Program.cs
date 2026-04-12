@@ -97,5 +97,6 @@ app.UseCors("frontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
+app.UseStaticFiles();
 app.MapControllers();
 app.Run();
