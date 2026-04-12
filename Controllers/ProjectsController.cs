@@ -23,6 +23,16 @@ public class ProjectsController(MyDbContext db) : BaseController
     }
 
     [Authorize]
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetProject(Guid id)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+        var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+        if (project == null) return NotFound("project-not-found");
+        return Ok(project);
+    }
+    [Authorize]
     [HttpPost]
     public async Task<IActionResult> CreateProject([FromBody] NewProjectBody body)
     {

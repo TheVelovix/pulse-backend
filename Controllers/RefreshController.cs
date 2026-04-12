@@ -15,6 +15,7 @@ public class RefreshController(MyDbContext db, JwtService jwtService) : Controll
 {
     private readonly MyDbContext _db = db;
     private readonly JwtService _jwtService = jwtService;
+    private readonly bool _isProduction = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production";
 
     [HttpPost]
     public async Task<IActionResult> NewRefreshToken()
@@ -41,15 +42,15 @@ public class RefreshController(MyDbContext db, JwtService jwtService) : Controll
             Response.Cookies.Append("accessToken", newTokens.AccessToken, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
+                Secure = _isProduction,
+                SameSite = _isProduction ? SameSiteMode.Strict : SameSiteMode.Lax,
                 Expires = DateTime.UtcNow.AddHours(1)
             });
             Response.Cookies.Append("refreshToken", newTokens.RefreshToken, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
-                SameSite = SameSiteMode.Strict,
+                Secure = _isProduction,
+                SameSite = _isProduction ? SameSiteMode.Strict : SameSiteMode.Lax,
                 Expires = DateTime.UtcNow.AddDays(7)
             });
             await _db.RefreshTokens.Where(t => t.Token == refreshToken).ExecuteDeleteAsync();
