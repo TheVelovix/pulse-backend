@@ -6,6 +6,7 @@ using pulse.Models;
 using pulse_backend.Controllers;
 using UAParser;
 using MaxMind.GeoIP2;
+using Microsoft.AspNetCore.Cors;
 
 namespace pulse.Controllers;
 
@@ -17,6 +18,7 @@ public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaPar
     private readonly DatabaseReader _reader = reader;
     private readonly Parser _uaParser = uaParser;
 
+    [EnableCors("tracker")]
     [HttpPost]
     [EnableRateLimiting("track")]
     public async Task<IActionResult> Track([FromBody] TrackBody body)
