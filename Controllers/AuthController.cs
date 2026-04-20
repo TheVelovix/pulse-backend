@@ -104,7 +104,7 @@ public class AuthController(JwtService jwtService, MyDbContext db) : BaseControl
         {
             return NotFound();
         }
-        return Ok(new { user.Id, user.Email });
+        return Ok(new { user.Id, user.Email, user.SubscriptionPlan });
     }
 
     [Authorize]

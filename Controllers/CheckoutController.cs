@@ -28,4 +28,20 @@ public class CheckoutController(MyDbContext db, PaddleService paddleService) : B
         return Ok(new { url = checkoutUrl });
     }
 
+    [HttpPost("cancel")]
+    public async Task<IActionResult> Cancel()
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var user = await _db.Users.FindAsync(userId);
+        if (user == null) return Unauthorized();
+
+        if (user.SubscriptionPlan != "pro") return BadRequest("not subscribed");
+
+        var success = await _paddleService.CancelSubscription(user.PaddleSubscriptionId!);
+        if (!success) return StatusCode(500, "failed to cancel subscription");
+
+        return Ok();
+    }
 }
