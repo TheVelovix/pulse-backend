@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using pulse_backend.Data;
+using pulse.Data;
 using pulse.Models;
 
-namespace pulse_backend.Controllers;
+namespace pulse.Controllers;
 
 [ApiController]
 [Route("api/projects")]

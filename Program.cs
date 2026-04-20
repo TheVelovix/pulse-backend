@@ -6,7 +6,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using pulse_backend.Data;
+using pulse.Services;
+using pulse.Data;
 using pulse_backend.Services;
 using UAParser;
 
@@ -83,8 +84,8 @@ builder.Services.AddCors(options =>
         .AllowAnyMethod();
     });
 });
-
-
+builder.Services.AddSingleton<PaddleService>();
+builder.Services.AddHostedService<DataRetentionService>();
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())

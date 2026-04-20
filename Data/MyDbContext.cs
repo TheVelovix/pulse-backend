@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using pulse.Models;
 
-namespace pulse_backend.Data;
+namespace pulse.Data;
 
 public class MyDbContext : DbContext
 {

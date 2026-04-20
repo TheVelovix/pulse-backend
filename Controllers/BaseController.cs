@@ -1,7 +1,7 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 
-namespace pulse_backend.Controllers;
+namespace pulse.Controllers;
 
 public class BaseController : ControllerBase
 {

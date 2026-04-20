@@ -12,8 +12,8 @@ using pulse.Data;
 namespace pulse.Migrations
 {
     [DbContext(typeof(MyDbContext))]
-    [Migration("20260409191024_AddCascadeDelete")]
-    partial class AddCascadeDelete
+    [Migration("20260420124119_AddSubscriptionId")]
+    partial class AddSubscriptionId
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -32,6 +32,9 @@ namespace pulse.Migrations
                         .HasColumnType("bigint");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Browser")
+                        .HasColumnType("text");
 
                     b.Property<string>("Country")
                         .HasColumnType("text");
@@ -132,7 +135,14 @@ namespace pulse.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("PaddleSubscriptionId")
+                        .HasColumnType("text");
+
                     b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SubscriptionPlan")
                         .IsRequired()
                         .HasColumnType("text");
 

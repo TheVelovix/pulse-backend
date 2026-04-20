@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using pulse_backend.Controllers;
-using pulse_backend.Data;
+using pulse.Data;
 
 namespace pulse.Controllers;
 

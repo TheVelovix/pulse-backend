@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using pulse_backend.Data;
+using pulse.Data;
 using pulse.Models;
 using pulse_backend.Services;
 using Microsoft.AspNetCore.Authorization;

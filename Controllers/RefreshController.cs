@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using pulse_backend.Data;
+using pulse.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;

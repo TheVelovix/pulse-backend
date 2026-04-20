@@ -1,9 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
-using pulse_backend.Data;
+using pulse.Data;
 using pulse.Models;
-using pulse_backend.Controllers;
 using UAParser;
 using MaxMind.GeoIP2;
 using Microsoft.AspNetCore.Cors;
