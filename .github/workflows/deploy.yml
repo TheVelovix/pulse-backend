@@ -46,6 +46,7 @@ jobs:
             PADDLE_BASE_URL=https://api.paddle.com
             PADDLE_WEBHOOK_SECRET=${{ secrets.PADDLE_WEBHOOK_SECRET }}
             PADDLE_SUCCESS_URL=https://pulse.velovix.com/dashboard
+            TURNSTILE_SECRET=${{ secrets.TURNSTILE_SECRET }}
             EOF
 
       - name: Restart service
