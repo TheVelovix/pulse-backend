@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using pulse.Constants;
 using pulse.Data;
 using pulse.Models;
 
@@ -10,7 +11,6 @@ namespace pulse.Controllers;
 [Route("api/projects")]
 public class ProjectsController(MyDbContext db) : BaseController
 {
-    private readonly MyDbContext _db = db;
     [Authorize]
     [HttpGet]
     public async Task<IActionResult> GetProjects()
@@ -18,7 +18,7 @@ public class ProjectsController(MyDbContext db) : BaseController
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
-        var projects = await _db.Projects.Where(p => p.UserId == userId).ToListAsync();
+        var projects = await db.Projects.Where(p => p.UserId == userId).ToListAsync();
         return Ok(projects);
     }
 
@@ -28,7 +28,7 @@ public class ProjectsController(MyDbContext db) : BaseController
     {
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
-        var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+        var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
         if (project == null) return NotFound("project-not-found");
         return Ok(project);
     }
@@ -39,8 +39,11 @@ public class ProjectsController(MyDbContext db) : BaseController
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
-        var projectsCount = await _db.Projects.CountAsync(p => p.UserId == userId);
-        if (projectsCount >= 5)
+        var user = await db.Users.FindAsync(userId);
+        if (user == null) return Unauthorized();
+        var projectLimit = Plans.ProjectLimits[user.SubscriptionPlan];
+        var projectsCount = await db.Projects.CountAsync(p => p.UserId == userId);
+        if (projectsCount >= projectLimit)
         {
             return BadRequest("project-limit-reached");
         }
@@ -51,8 +54,8 @@ public class ProjectsController(MyDbContext db) : BaseController
             Name = body.Name,
             Domain = body.Domain,
         };
-        _db.Projects.Add(newProject);
-        await _db.SaveChangesAsync();
+        db.Projects.Add(newProject);
+        await db.SaveChangesAsync();
         return Ok("project-created");
     }
 
@@ -62,10 +65,10 @@ public class ProjectsController(MyDbContext db) : BaseController
     {
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
-        var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+        var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
         if (project == null) return NotFound("project-not-found");
-        _db.Projects.Remove(project);
-        await _db.SaveChangesAsync();
+        db.Projects.Remove(project);
+        await db.SaveChangesAsync();
         return Ok("project-deleted");
     }
 }

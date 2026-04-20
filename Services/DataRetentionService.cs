@@ -21,6 +21,7 @@ public class DataRetentionService(IServiceScopeFactory scopeFactory, ILogger<Dat
             {
                 _logger.LogError(ex, "Data Retention Cleanup Failed");
             }
+            await Task.Delay(TimeSpan.FromHours(24), stoppingToken);
         }
     }
 
