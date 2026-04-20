@@ -6,17 +6,19 @@ using pulse.Models;
 using pulse_backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using pulse_backend.Controllers;
+using pulse.Services;
 
 namespace pulse.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController(JwtService jwtService, MyDbContext db) : BaseController
+public class AuthController(JwtService jwtService, MyDbContext db, TurnstileService turnstile) : BaseController
 {
     private readonly JwtService _jwtService = jwtService;
     private readonly MyDbContext _db = db;
     private readonly EmailAddressAttribute _email = new();
     private readonly bool _isProduction = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production";
+    private readonly TurnstileService _turnstile = turnstile;
 
     [HttpPost("signup")]
     public async Task<IActionResult> Signup([FromBody] SignUpBody body)
@@ -30,6 +32,11 @@ public class AuthController(JwtService jwtService, MyDbContext db) : BaseControl
         if (existingUser != null)
         {
             return BadRequest("user-already-exists");
+        }
+        bool passedTurnstile = await _turnstile.VerifyTurnstile(body.TurnstileToken);
+        if (!passedTurnstile)
+        {
+            return BadRequest("captcha-failed");
         }
         var hashedPassword = BCrypt.Net.BCrypt.HashPassword(body.Password);
         var newUser = new User
@@ -60,7 +67,6 @@ public class AuthController(JwtService jwtService, MyDbContext db) : BaseControl
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginBody body)
     {
-        Console.WriteLine($"Environment: {Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")}");
         var isValidEmail = _email.IsValid(body.Email);
         if (!isValidEmail)
         {
@@ -75,6 +81,11 @@ public class AuthController(JwtService jwtService, MyDbContext db) : BaseControl
         if (!isPasswordValid)
         {
             return BadRequest("invalid-credentials");
+        }
+        bool passedTurnstile = await _turnstile.VerifyTurnstile(body.TurnstileToken);
+        if (!passedTurnstile)
+        {
+            return BadRequest("captcha-failed");
         }
         var tokens = _jwtService.GenerateTokens(user);
         Response.Cookies.Append("accessToken", tokens.AccessToken, new CookieOptions
