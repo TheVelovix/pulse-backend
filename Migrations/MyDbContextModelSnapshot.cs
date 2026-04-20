@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
-using pulse_backend.Data;
+using pulse.Data;
 
 #nullable disable
 
@@ -132,7 +132,14 @@ namespace pulse.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("PaddleSubscriptionId")
+                        .HasColumnType("text");
+
                     b.Property<string>("Password")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("SubscriptionPlan")
                         .IsRequired()
                         .HasColumnType("text");
 
