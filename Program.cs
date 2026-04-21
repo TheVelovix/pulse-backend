@@ -34,7 +34,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         OnMessageReceived = context =>
         {
-            context.Token = context.Request.Cookies["accessToken"];
+            // Check cookie first
+            var token = context.Request.Cookies["accessToken"];
+
+            // Fallback to query string for SSE
+            if (string.IsNullOrEmpty(token))
+                token = context.Request.Query["token"];
+
+            context.Token = token;
             return Task.CompletedTask;
         }
     };
@@ -89,6 +96,7 @@ builder.Services.AddHostedService<DataRetentionService>();
 builder.Services.AddSingleton<TurnstileService>();
 builder.Services.AddSingleton<EmailService>();
 builder.Services.AddHostedService<WeeklyReportService>();
+builder.Services.AddSingleton<ActiveVisitorService>();
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
