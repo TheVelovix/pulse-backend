@@ -22,6 +22,7 @@ public class PaddleService
 
         var response = await _http.PostAsJsonAsync("/transactions", body);
         var rawJson = await response.Content.ReadAsStringAsync();
+        Console.WriteLine(rawJson);
         var data = JsonDocument.Parse(rawJson).RootElement;
         return data.GetProperty("data").GetProperty("checkout").GetProperty("url").GetString()!;
     }
