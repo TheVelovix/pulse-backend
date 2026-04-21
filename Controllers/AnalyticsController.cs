@@ -4,14 +4,16 @@ using Microsoft.EntityFrameworkCore;
 using pulse_backend.Controllers;
 using pulse.Data;
 using pulse.Constants;
+using pulse.Services;
 
 namespace pulse.Controllers;
 
 [ApiController]
 [Route("api/projects")]
-public class AnalyticsController(MyDbContext db) : BaseController
+public class AnalyticsController(MyDbContext db, ActiveVisitorService activeVisitorService) : BaseController
 {
     private readonly MyDbContext _db = db;
+    private readonly ActiveVisitorService _activeVisitorService = activeVisitorService;
 
     [Authorize]
     [HttpGet("{id}/analytics")]
@@ -204,5 +206,31 @@ public class AnalyticsController(MyDbContext db) : BaseController
         var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
 
         return File(bytes, "text/csv", $"{project.Name}-analytics.csv");
+    }
+
+    [Authorize]
+    [HttpGet("{id}/live")]
+    public async Task<IActionResult> LiveVisitors(Guid id, CancellationToken cancellationToken)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+        if (project == null) return NotFound();
+
+        Response.Headers["Content-Type"] = "text/event-stream";
+        Response.Headers["Cache-Control"] = "no-cache";
+        Response.Headers["X-Accel-Buffering"] = "no";
+
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            var count = _activeVisitorService.GetActiveVisitors(id);
+            var data = $"data: {count}\n\n";
+            await Response.WriteAsync(data, cancellationToken);
+            await Response.Body.FlushAsync(cancellationToken);
+            await Task.Delay(1000, cancellationToken);
+        }
+
+        return Ok();
     }
 }

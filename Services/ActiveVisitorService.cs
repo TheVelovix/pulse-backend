@@ -1,0 +1,55 @@
+namespace pulse.Services;
+
+public class ActiveVisitorService
+{
+    private readonly Dictionary<Guid, Dictionary<string, DateTime>> _activeVisitors = new();
+    private readonly TimeSpan _timeout = TimeSpan.FromMinutes(2);
+    private readonly Lock _lock = new();
+
+    public void RecordHeartBeat(Guid projectId, string visitorId)
+    {
+        lock (_lock)
+        {
+            if (!_activeVisitors.ContainsKey(projectId))
+            {
+                _activeVisitors[projectId] = new Dictionary<string, DateTime>();
+            }
+            _activeVisitors[projectId][visitorId] = DateTime.UtcNow;
+        }
+    }
+
+    public int GetActiveVisitors(Guid projectId)
+    {
+        lock (_lock)
+        {
+            if (!_activeVisitors.TryGetValue(projectId, out var visitors))
+            {
+                return 0;
+            }
+
+            var cutoff = DateTime.UtcNow - _timeout;
+            var active = visitors.Values.Count(t => t >= cutoff);
+            return active;
+        }
+    }
+
+    public void Cleanup()
+    {
+        lock (_lock)
+        {
+            var cutoff = DateTime.UtcNow - _timeout;
+            foreach (var projectId in _activeVisitors.Keys)
+            {
+                var stale = _activeVisitors[projectId]
+                  .Where(kv => kv.Value < cutoff)
+                  .Select(kv => kv.Key)
+                  .ToList();
+
+                foreach (var key in stale)
+                {
+                    _activeVisitors[projectId].Remove(key);
+                }
+            }
+        }
+    }
+}
