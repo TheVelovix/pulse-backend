@@ -11,4 +11,5 @@ public class User
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public ICollection<Project> Projects { get; set; } = [];
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
+    public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = [];
 }

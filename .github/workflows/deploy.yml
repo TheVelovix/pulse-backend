@@ -47,6 +47,10 @@ jobs:
             PADDLE_WEBHOOK_SECRET=${{ secrets.PADDLE_WEBHOOK_SECRET }}
             PADDLE_SUCCESS_URL=https://pulse.velovix.com/dashboard
             TURNSTILE_SECRET=${{ secrets.TURNSTILE_SECRET }}
+            SMTP_HOST=smtp.zoho.eu
+            SMTP_PORT=587
+            SMTP_USER=${{ secrets.SMTP_USER }}
+            SMTP_PASSWORD=${{ secrets.SMTP_PASSWORD }}
             EOF
 
       - name: Restart service
