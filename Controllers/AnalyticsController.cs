@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using pulse_backend.Controllers;
 using pulse.Data;
 using pulse.Constants;
 using pulse.Services;
@@ -9,14 +8,14 @@ using pulse.Services;
 namespace pulse.Controllers;
 
 [ApiController]
-[Route("api/projects")]
+[Route("api/analytics")]
 public class AnalyticsController(MyDbContext db, ActiveVisitorService activeVisitorService) : BaseController
 {
     private readonly MyDbContext _db = db;
     private readonly ActiveVisitorService _activeVisitorService = activeVisitorService;
 
     [Authorize]
-    [HttpGet("{id}/analytics")]
+    [HttpGet("{id}")]
     public async Task<IActionResult> GetAnalytics(Guid id, [FromQuery] int? days, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
         var userId = GetUserId();
