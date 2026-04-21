@@ -1,4 +1,5 @@
 
+using Microsoft.AspNetCore.Cors;
 using Microsoft.AspNetCore.Mvc;
 using pulse.Services;
 
@@ -6,6 +7,7 @@ namespace pulse.Controllers;
 
 [ApiController]
 [Route("api/heartbeat")]
+[EnableCors("tracker")]
 public class HeartbeatController(ActiveVisitorService activeVisitorService) : BaseController
 {
     private readonly ActiveVisitorService _activeVisitorService = activeVisitorService;
