@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using pulse.Data;
 using pulse.Services;
 
@@ -18,8 +19,8 @@ public class CheckoutController(MyDbContext db, PaddleService paddleService) : B
     {
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
-
-        var user = await _db.Users.FindAsync(userId);
+        Console.WriteLine($"Checkout User ID: {userId}");
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null) return Unauthorized();
 
         if (user.SubscriptionPlan == "pro") return BadRequest("already subscribed");
