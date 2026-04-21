@@ -5,20 +5,21 @@ using pulse.Data;
 using pulse.Models;
 using pulse_backend.Services;
 using Microsoft.AspNetCore.Authorization;
-using pulse_backend.Controllers;
 using pulse.Services;
+using pulse.Constants;
 
 namespace pulse.Controllers;
 
 [ApiController]
 [Route("api/auth")]
-public class AuthController(JwtService jwtService, MyDbContext db, TurnstileService turnstile) : BaseController
+public class AuthController(JwtService jwtService, MyDbContext db, TurnstileService turnstile, EmailService emailService) : BaseController
 {
     private readonly JwtService _jwtService = jwtService;
     private readonly MyDbContext _db = db;
     private readonly EmailAddressAttribute _email = new();
     private readonly bool _isProduction = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production";
     private readonly TurnstileService _turnstile = turnstile;
+    private readonly EmailService _emailService = emailService;
 
     [HttpPost("signup")]
     public async Task<IActionResult> Signup([FromBody] SignUpBody body)
@@ -46,6 +47,7 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
         };
         await _db.Users.AddAsync(newUser);
         await _db.SaveChangesAsync();
+        _ = _emailService.SendAsync(newUser.Email, "Welcome to Pulse", EmailTemplates.Welcome(newUser.Email));
         var tokens = _jwtService.GenerateTokens(newUser);
         Response.Cookies.Append("accessToken", tokens.AccessToken, new CookieOptions
         {
@@ -128,5 +130,40 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
         Response.Cookies.Delete("accessToken");
         Response.Cookies.Delete("refreshToken");
         return Ok("success");
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromQuery] string email)
+    {
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+        if (user == null) return NotFound();
+        await _db.PasswordResetTokens.Where(t => t.UserId == user.Id).ExecuteDeleteAsync();
+        var code = Random.Shared.Next(0, 10000).ToString("D4");
+        var token = new PasswordResetToken
+        {
+            UserId = user.Id,
+            Token = code,
+            CreatedAt = DateTime.UtcNow,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(30)
+        };
+        _db.PasswordResetTokens.Add(token);
+        await _db.SaveChangesAsync();
+        _ = _emailService.SendAsync(email, "Reset your password", EmailTemplates.PasswordResetEmail(code));
+
+        return Ok();
+    }
+
+    [HttpPatch("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromQuery] string code, [FromQuery] string newPassword)
+    {
+        var token = await _db.PasswordResetTokens.FirstOrDefaultAsync(t => t.Token == code);
+        if (token == null || token.ExpiresAt < DateTime.UtcNow) return BadRequest("invalid-code");
+        var user = await _db.Users.FindAsync(token.UserId);
+        if (user == null) return NotFound();
+        user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        await _db.SaveChangesAsync();
+        await _db.PasswordResetTokens.Where(t => t.UserId == user.Id).ExecuteDeleteAsync();
+
+        return Ok();
     }
 }

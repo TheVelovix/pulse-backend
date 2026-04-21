@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using pulse_backend.Controllers;
 using pulse.Data;
+using pulse.Constants;
 
 namespace pulse.Controllers;
 
@@ -14,20 +15,37 @@ public class AnalyticsController(MyDbContext db) : BaseController
 
     [Authorize]
     [HttpGet("{id}/analytics")]
-    public async Task<IActionResult> GetAnalytics(Guid id, [FromQuery] int? days)
+    public async Task<IActionResult> GetAnalytics(Guid id, [FromQuery] int? days, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
         var userId = GetUserId();
         if (userId == null)
         {
             return Unauthorized();
         }
-        var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+        var project = await _db.Projects.Include(p => p.User).FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
         if (project == null)
         {
             return NotFound();
         }
-        var cutoff = days.HasValue ? DateTime.UtcNow.AddDays(-days.Value) : DateTime.MinValue;
-        var views = _db.PageViews.Where(pv => pv.ProjectId == id && pv.CreatedAt >= cutoff);
+        var maxRetentionDays = Plans.RetentionDays[project.User.SubscriptionPlan];
+        var earliestAllowed = DateTime.UtcNow.AddDays(-maxRetentionDays);
+        DateTime cutoff;
+        DateTime ceiling = to.HasValue ? to.Value.ToUniversalTime() : DateTime.UtcNow;
+        if (from.HasValue)
+        {
+            cutoff = from.Value.ToUniversalTime();
+        }
+        else if (days.HasValue)
+        {
+            cutoff = DateTime.UtcNow.AddDays(-days.Value);
+        }
+        else
+        {
+            cutoff = DateTime.MinValue;
+        }
+        if (cutoff < earliestAllowed) cutoff = earliestAllowed;
+
+        var views = _db.PageViews.Where(pv => pv.ProjectId == id && pv.CreatedAt >= cutoff && pv.CreatedAt <= ceiling);
         var totalViews = await views.CountAsync();
         var viewsPerDay = await views
             .GroupBy(pv => pv.CreatedAt.Date)
@@ -74,5 +92,117 @@ public class AnalyticsController(MyDbContext db) : BaseController
             browsers,
             countries,
         });
+    }
+
+    [Authorize]
+    [HttpGet("{id}/export")]
+    public async Task<IActionResult> ExportAnalytics(Guid id, [FromQuery] int? days, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
+    {
+        var userId = GetUserId();
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+        var project = await _db.Projects.Include(p => p.User).FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+        if (project == null)
+        {
+            return NotFound();
+        }
+        if (project.User.SubscriptionPlan != Plans.Pro)
+        {
+            return Forbid("You must be a Pro user to export analytics.");
+        }
+        var maxRetentionDays = Plans.RetentionDays[project.User.SubscriptionPlan];
+        var earliestAllowed = DateTime.UtcNow.AddDays(-maxRetentionDays);
+
+        DateTime cutoff;
+        DateTime ceiling = to.HasValue ? to.Value.ToUniversalTime() : DateTime.UtcNow;
+
+        if (from.HasValue)
+        {
+            cutoff = from.Value.ToUniversalTime();
+        }
+        else if (days.HasValue)
+        {
+            cutoff = ceiling.AddDays(-days.Value);
+        }
+        else
+        {
+            cutoff = DateTime.MinValue;
+        }
+        if (cutoff < earliestAllowed)
+        {
+            cutoff = earliestAllowed;
+        }
+
+        var views = _db.PageViews.Where(pv => pv.ProjectId == id && pv.CreatedAt >= cutoff && pv.CreatedAt <= ceiling);
+        var viewsPerDay = await views
+            .GroupBy(pv => pv.CreatedAt.Date)
+            .Select(g => new { Date = g.Key, Count = g.Count() })
+            .OrderBy(pv => pv.Date)
+            .ToListAsync();
+
+        var topPages = await views
+            .GroupBy(pv => pv.Url)
+            .Select(g => new { Url = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count)
+            .ToListAsync();
+
+        var topReferrers = await views
+             .Where(pv => pv.Referrer != null)
+             .GroupBy(pv => pv.Referrer)
+             .Select(g => new { Referrer = g.Key, Count = g.Count() })
+             .OrderByDescending(x => x.Count)
+             .Take(10)
+             .ToListAsync();
+
+        var devices = await views
+            .GroupBy(pv => pv.Device)
+            .Select(g => new { Device = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count)
+            .ToListAsync();
+
+        var browsers = await views
+            .GroupBy(pv => pv.Browser)
+            .Select(g => new { Browser = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count)
+            .ToListAsync();
+
+        var countries = await views
+            .Where(pv => pv.Country != null)
+            .GroupBy(pv => pv.Country)
+            .Select(g => new { Country = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count)
+            .ToListAsync();
+
+        var sb = new System.Text.StringBuilder();
+
+        sb.AppendLine("Views Per Day");
+        sb.AppendLine("Date,Views");
+        foreach (var v in viewsPerDay) sb.AppendLine($"{v.Date:yyyy-MM-dd},{v.Count}");
+
+        sb.AppendLine();
+        sb.AppendLine("Top Pages");
+        sb.AppendLine("URL,Views");
+        foreach (var page in topPages) sb.AppendLine($"{page.Url},{page.Count}");
+
+        sb.AppendLine();
+        sb.AppendLine("Top Referrers");
+        sb.AppendLine("Referrer,Views");
+        foreach (var r in topReferrers) sb.AppendLine($"{r.Referrer},{r.Count}");
+
+        sb.AppendLine();
+        sb.AppendLine("Browsers");
+        sb.AppendLine("Browser,Views");
+        foreach (var b in browsers) sb.AppendLine($"{b.Browser},{b.Count}");
+
+        sb.AppendLine();
+        sb.AppendLine("Countries");
+        sb.AppendLine("Country,Views");
+        foreach (var country in countries) sb.AppendLine($"{country.Country},{country.Count}");
+
+        var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+
+        return File(bytes, "text/csv", $"{project.Name}-analytics.csv");
     }
 }

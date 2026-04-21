@@ -87,7 +87,8 @@ builder.Services.AddCors(options =>
 builder.Services.AddSingleton<PaddleService>();
 builder.Services.AddHostedService<DataRetentionService>();
 builder.Services.AddSingleton<TurnstileService>();
-
+builder.Services.AddSingleton<EmailService>();
+builder.Services.AddHostedService<WeeklyReportService>();
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
