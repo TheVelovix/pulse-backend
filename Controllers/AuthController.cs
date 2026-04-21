@@ -53,14 +53,16 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
         {
             HttpOnly = true,
             Secure = _isProduction,
-            SameSite = _isProduction ? SameSiteMode.Strict : SameSiteMode.Lax,
+            SameSite = SameSiteMode.None,
+            Domain = _isProduction ? ".velovix.com" : null,
             Expires = DateTime.UtcNow.AddHours(1)
         });
         Response.Cookies.Append("refreshToken", tokens.RefreshToken, new CookieOptions
         {
             HttpOnly = true,
             Secure = _isProduction,
-            SameSite = _isProduction ? SameSiteMode.Strict : SameSiteMode.Lax,
+            SameSite = SameSiteMode.None,
+            Domain = _isProduction ? ".velovix.com" : null,
             Expires = DateTime.UtcNow.AddDays(7)
         });
         return Ok("success");
@@ -94,14 +96,16 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
         {
             HttpOnly = true,
             Secure = _isProduction,
-            SameSite = _isProduction ? SameSiteMode.Strict : SameSiteMode.Lax,
+            SameSite = SameSiteMode.None,
+            Domain = _isProduction ? ".velovix.com" : null,
             Expires = DateTime.UtcNow.AddHours(1)
         });
         Response.Cookies.Append("refreshToken", tokens.RefreshToken, new CookieOptions
         {
             HttpOnly = true,
             Secure = _isProduction,
-            SameSite = _isProduction ? SameSiteMode.Strict : SameSiteMode.Lax,
+            SameSite = SameSiteMode.None,
+            Domain = _isProduction ? ".velovix.com" : null,
             Expires = DateTime.UtcNow.AddDays(7)
         });
         return Ok("success");

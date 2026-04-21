@@ -7,7 +7,7 @@ using System.IdentityModel.Tokens.Jwt;
 using pulse_backend.Services;
 using pulse.Models;
 
-namespace pulse_backend.Controllers;
+namespace pulse.Controllers;
 
 [ApiController]
 [Route("api/refresh")]
@@ -43,14 +43,16 @@ public class RefreshController(MyDbContext db, JwtService jwtService) : Controll
             {
                 HttpOnly = true,
                 Secure = _isProduction,
-                SameSite = _isProduction ? SameSiteMode.Strict : SameSiteMode.Lax,
+                SameSite = SameSiteMode.None,
+                Domain = _isProduction ? ".velovix.com" : null,
                 Expires = DateTime.UtcNow.AddHours(1)
             });
             Response.Cookies.Append("refreshToken", newTokens.RefreshToken, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = _isProduction,
-                SameSite = _isProduction ? SameSiteMode.Strict : SameSiteMode.Lax,
+                SameSite = SameSiteMode.None,
+                Domain = _isProduction ? ".velovix.com" : null,
                 Expires = DateTime.UtcNow.AddDays(7)
             });
             await _db.RefreshTokens.Where(t => t.Token == refreshToken).ExecuteDeleteAsync();
