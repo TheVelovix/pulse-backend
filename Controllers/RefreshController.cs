@@ -42,7 +42,7 @@ public class RefreshController(MyDbContext db, JwtService jwtService) : Controll
             Response.Cookies.Append("accessToken", newTokens.AccessToken, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = _isProduction,
+                Secure = true,
                 SameSite = SameSiteMode.None,
                 Domain = _isProduction ? ".velovix.com" : null,
                 Expires = DateTime.UtcNow.AddHours(1)
@@ -50,7 +50,7 @@ public class RefreshController(MyDbContext db, JwtService jwtService) : Controll
             Response.Cookies.Append("refreshToken", newTokens.RefreshToken, new CookieOptions
             {
                 HttpOnly = true,
-                Secure = _isProduction,
+                Secure = true,
                 SameSite = SameSiteMode.None,
                 Domain = _isProduction ? ".velovix.com" : null,
                 Expires = DateTime.UtcNow.AddDays(7)
