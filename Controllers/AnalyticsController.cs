@@ -8,13 +8,13 @@ using pulse.Services;
 namespace pulse.Controllers;
 
 [ApiController]
+[Authorize(Policy = "JwtOrApiKey")]
 [Route("api/analytics")]
 public class AnalyticsController(MyDbContext db, ActiveVisitorService activeVisitorService) : BaseController
 {
     private readonly MyDbContext _db = db;
     private readonly ActiveVisitorService _activeVisitorService = activeVisitorService;
 
-    [Authorize]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetAnalytics(Guid id, [FromQuery] int? days, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
@@ -95,7 +95,6 @@ public class AnalyticsController(MyDbContext db, ActiveVisitorService activeVisi
         });
     }
 
-    [Authorize]
     [HttpGet("{id}/export")]
     public async Task<IActionResult> ExportAnalytics(Guid id, [FromQuery] int? days, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
@@ -207,7 +206,6 @@ public class AnalyticsController(MyDbContext db, ActiveVisitorService activeVisi
         return File(bytes, "text/csv", $"{project.Name}-analytics.csv");
     }
 
-    [Authorize]
     [HttpGet("{id}/live")]
     public async Task<IActionResult> LiveVisitors(Guid id, CancellationToken cancellationToken)
     {

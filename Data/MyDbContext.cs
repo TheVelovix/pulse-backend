@@ -14,6 +14,7 @@ public class MyDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+    public DbSet<ApiKey> ApiKeys { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -37,6 +38,11 @@ public class MyDbContext : DbContext
             .HasOne(prt => prt.User)
             .WithMany(u => u.PasswordResetTokens)
             .HasForeignKey(prt => prt.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+        modelBuilder.Entity<ApiKey>()
+            .HasOne(k => k.User)
+            .WithMany(u => u.ApiKeys)
+            .HasForeignKey(k => k.UserId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

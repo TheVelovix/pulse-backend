@@ -8,10 +8,10 @@ using pulse.Models;
 namespace pulse.Controllers;
 
 [ApiController]
+[Authorize(Policy = "JwtOrApiKey")]
 [Route("api/projects")]
 public class ProjectsController(MyDbContext db) : BaseController
 {
-    [Authorize]
     [HttpGet]
     public async Task<IActionResult> GetProjects()
     {
@@ -19,10 +19,16 @@ public class ProjectsController(MyDbContext db) : BaseController
         if (userId == null) return Unauthorized();
 
         var projects = await db.Projects.Where(p => p.UserId == userId).ToListAsync();
-        return Ok(projects);
+        return Ok(projects.Select(p => new
+        {
+            p.Id,
+            p.Name,
+            p.Domain,
+            p.CreatedAt,
+            p.UpdatedAt,
+        }));
     }
 
-    [Authorize]
     [HttpGet("{id}")]
     public async Task<IActionResult> GetProject(Guid id)
     {
@@ -30,9 +36,15 @@ public class ProjectsController(MyDbContext db) : BaseController
         if (userId == null) return Unauthorized();
         var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
         if (project == null) return NotFound("project-not-found");
-        return Ok(project);
+        return Ok(new
+        {
+            project.Id,
+            project.Name,
+            project.Domain,
+            project.CreatedAt,
+            project.UpdatedAt,
+        });
     }
-    [Authorize]
     [HttpPost]
     public async Task<IActionResult> CreateProject([FromBody] NewProjectBody body)
     {
@@ -59,7 +71,6 @@ public class ProjectsController(MyDbContext db) : BaseController
         return Ok("project-created");
     }
 
-    [Authorize]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteProject(Guid id)
     {

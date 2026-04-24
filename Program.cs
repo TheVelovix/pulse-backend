@@ -10,6 +10,9 @@ using pulse.Services;
 using pulse.Data;
 using pulse_backend.Services;
 using UAParser;
+using Microsoft.AspNetCore.Authentication;
+using pulse.Middleware;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,8 +48,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             return Task.CompletedTask;
         }
     };
-});
-builder.Services.AddAuthorization();
+}).AddScheme<AuthenticationSchemeOptions, ApiKeyAuthHandler>("ApiKey", null);
+
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("JwtOrApiKey", policy => policy
+        .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, "ApiKey")
+        .RequireAuthenticatedUser());
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -74,7 +81,10 @@ builder.Services.AddDbContext<MyDbContext>(options =>
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddSingleton(new DatabaseReader("GeoData/GeoLite2-Country.mmdb"));
 builder.Services.AddSingleton(Parser.GetDefault());
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+});
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("frontend", policy =>
