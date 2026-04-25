@@ -4,7 +4,7 @@ namespace pulse.Services;
 
 public class PaddleService
 {
-    private readonly HttpClient _http = new HttpClient { BaseAddress = new Uri(Environment.GetEnvironmentVariable("PADDLE_BASE_URL")!) };
+    private readonly HttpClient _http = new() { BaseAddress = new Uri(Environment.GetEnvironmentVariable("PADDLE_BASE_URL")!) };
     private readonly string _apiKey = Environment.GetEnvironmentVariable("PADDLE_API_KEY")!;
     public string _webhookSecret = Environment.GetEnvironmentVariable("PADDLE_WEBHOOK_SECRET")!;
     private readonly string _proPlanPriceId = Environment.GetEnvironmentVariable("PRO_PLAN_PRICE_ID")!;
@@ -22,7 +22,6 @@ public class PaddleService
 
         var response = await _http.PostAsJsonAsync("/transactions", body);
         var rawJson = await response.Content.ReadAsStringAsync();
-        Console.WriteLine(rawJson);
         var data = JsonDocument.Parse(rawJson).RootElement;
         return data.GetProperty("data").GetProperty("checkout").GetProperty("url").GetString()!;
     }

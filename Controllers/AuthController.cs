@@ -7,10 +7,13 @@ using pulse_backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using pulse.Services;
 using pulse.Constants;
+using System.Security.Cryptography;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace pulse.Controllers;
 
 [ApiController]
+[EnableRateLimiting("auth")]
 [Route("api/auth")]
 public class AuthController(JwtService jwtService, MyDbContext db, TurnstileService turnstile, EmailService emailService) : BaseController
 {
@@ -140,15 +143,15 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
     public async Task<IActionResult> ResetPassword([FromQuery] string email)
     {
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
-        if (user == null) return NotFound();
+        if (user == null) return Ok();
         await _db.PasswordResetTokens.Where(t => t.UserId == user.Id).ExecuteDeleteAsync();
-        var code = Random.Shared.Next(0, 10000).ToString("D4");
+        var code = RandomNumberGenerator.GetInt32(0, 1000000).ToString("D6");
         var token = new PasswordResetToken
         {
             UserId = user.Id,
             Token = code,
             CreatedAt = DateTime.UtcNow,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(30)
+            ExpiresAt = DateTime.UtcNow.AddMinutes(15)
         };
         _db.PasswordResetTokens.Add(token);
         await _db.SaveChangesAsync();

@@ -1,13 +1,17 @@
+using pulse.Data;
+
 namespace pulse.Services;
 
-public class ActiveVisitorService
+public class ActiveVisitorService(MyDbContext db)
 {
     private readonly Dictionary<Guid, Dictionary<string, DateTime>> _activeVisitors = new();
-    private readonly TimeSpan _timeout = TimeSpan.FromMinutes(2);
+    private readonly TimeSpan _timeout = TimeSpan.FromMinutes(1);
     private readonly Lock _lock = new();
 
     public void RecordHeartBeat(Guid projectId, string visitorId)
     {
+        var exists = db.Projects.Any(p => p.Id == projectId);
+        if (!exists) return;
         lock (_lock)
         {
             if (!_activeVisitors.ContainsKey(projectId))
