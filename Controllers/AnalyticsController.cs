@@ -184,28 +184,41 @@ public class AnalyticsController(MyDbContext db, ActiveVisitorService activeVisi
         sb.AppendLine();
         sb.AppendLine("Top Pages");
         sb.AppendLine("URL,Views");
-        foreach (var page in topPages) sb.AppendLine($"{page.Url},{page.Count}");
+        foreach (var page in topPages) sb.AppendLine($"{SanitizeCsvField(page.Url)},{page.Count}");
 
         sb.AppendLine();
         sb.AppendLine("Top Referrers");
         sb.AppendLine("Referrer,Views");
-        foreach (var r in topReferrers) sb.AppendLine($"{r.Referrer},{r.Count}");
+        foreach (var r in topReferrers) sb.AppendLine($"{SanitizeCsvField(r.Referrer)},{r.Count}");
+
+        sb.AppendLine();
+        sb.AppendLine("Devices");
+        sb.AppendLine("Device,Views");
+        foreach (var d in devices) sb.AppendLine($"{SanitizeCsvField(d.Device)},{d.Count}");
 
         sb.AppendLine();
         sb.AppendLine("Browsers");
         sb.AppendLine("Browser,Views");
-        foreach (var b in browsers) sb.AppendLine($"{b.Browser},{b.Count}");
+        foreach (var b in browsers) sb.AppendLine($"{SanitizeCsvField(b.Browser)},{b.Count}");
 
         sb.AppendLine();
         sb.AppendLine("Countries");
         sb.AppendLine("Country,Views");
-        foreach (var country in countries) sb.AppendLine($"{country.Country},{country.Count}");
+        foreach (var country in countries) sb.AppendLine($"{SanitizeCsvField(country.Country)},{country.Count}");
 
         var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
-
         return File(bytes, "text/csv", $"{project.Name}-analytics.csv");
     }
 
+    private static string SanitizeCsvField(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+
+        if (value.StartsWith('=') || value.StartsWith('+') || value.StartsWith('-') || value.StartsWith('@')) value = "'" + value;
+
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n')) value = $"\"{value.Replace("\"", "\"\"")}\"";
+        return value;
+    }
     [HttpGet("{id}/live")]
     public async Task<IActionResult> LiveVisitors(Guid id, CancellationToken cancellationToken)
     {

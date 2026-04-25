@@ -34,7 +34,6 @@ public class RefreshController(MyDbContext db, JwtService jwtService) : Controll
         }
         try
         {
-            Console.WriteLine($"NAME IDENTIFIER: {principal.FindFirst(ClaimTypes.NameIdentifier)?.Value}");
             var userId = long.Parse(principal.FindFirst(ClaimTypes.NameIdentifier)?.Value!);
             var dbRefreshToken = await _db.RefreshTokens.Include(t => t.User).FirstOrDefaultAsync(t => t.Token == refreshToken && t.UserId == userId);
             if (dbRefreshToken == null) return Unauthorized("invalid-refresh-token");

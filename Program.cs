@@ -73,6 +73,12 @@ builder.Services.AddRateLimiter(options =>
         o.PermitLimit = 500;
         o.Window = TimeSpan.FromSeconds(10);
     });
+    options.AddFixedWindowLimiter("auth", o =>
+    {
+        o.PermitLimit = 5;
+        o.Window = TimeSpan.FromMinutes(1);
+        o.QueueLimit = 0;
+    });
 });
 builder.Services.AddDbContext<MyDbContext>(options =>
 {
@@ -89,7 +95,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("frontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "https://pulse.velovix.com", "pulse.velovix.com", "https://www.pulse.velovix.com")
+        policy.WithOrigins("http://localhost:3000", "https://pulse.velovix.com", "https://www.pulse.velovix.com")
         .AllowAnyHeader()
         .AllowAnyMethod()
         .AllowCredentials();
@@ -120,6 +126,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseHsts();
 app.UseHttpsRedirection();
 app.UseCors("frontend");
 app.UseAuthentication();

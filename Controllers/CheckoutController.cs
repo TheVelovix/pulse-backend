@@ -19,7 +19,6 @@ public class CheckoutController(MyDbContext db, PaddleService paddleService) : B
     {
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
-        Console.WriteLine($"Checkout User ID: {userId}");
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null) return Unauthorized();
 

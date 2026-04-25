@@ -47,6 +47,7 @@ public class ApiKeyAuthHandler(
             await scopedDb.ApiKeys
                 .Where(k => k.Id == apiKey.Id)
                 .ExecuteUpdateAsync(s => s.SetProperty(k => k.LastUsed, DateTime.UtcNow));
+            await scopedDb.SaveChangesAsync();
         });
 
         var claims = new[]

@@ -75,6 +75,11 @@ public class WebhookController(MyDbContext db, PaddleService paddleService) : Ba
         var ts = parts[0].Replace("ts=", "");
         var h1 = parts[1].Replace("h1=", "");
 
+        if (!long.TryParse(ts, out var timestamp)) return false;
+
+        var eventTime = DateTimeOffset.FromUnixTimeSeconds(timestamp);
+        if (Math.Abs((DateTime.UtcNow - eventTime).TotalMinutes) > 5) return false;
+
         var signed = $"{ts}:{rawBody}";
         var keyBytes = Encoding.UTF8.GetBytes(_paddleService._webhookSecret);
         var msgBytes = Encoding.UTF8.GetBytes(signed);
