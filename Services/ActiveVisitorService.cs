@@ -1,8 +1,9 @@
 using pulse.Data;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace pulse.Services;
 
-public class ActiveVisitorService(MyDbContext db)
+public class ActiveVisitorService(IServiceScopeFactory scopeFactory)
 {
     private readonly Dictionary<Guid, Dictionary<string, DateTime>> _activeVisitors = new();
     private readonly TimeSpan _timeout = TimeSpan.FromMinutes(1);
@@ -10,6 +11,8 @@ public class ActiveVisitorService(MyDbContext db)
 
     public void RecordHeartBeat(Guid projectId, string visitorId)
     {
+        using var scope = scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MyDbContext>();
         var exists = db.Projects.Any(p => p.Id == projectId);
         if (!exists) return;
         lock (_lock)
@@ -30,10 +33,8 @@ public class ActiveVisitorService(MyDbContext db)
             {
                 return 0;
             }
-
             var cutoff = DateTime.UtcNow - _timeout;
-            var active = visitors.Values.Count(t => t >= cutoff);
-            return active;
+            return visitors.Values.Count(t => t >= cutoff);
         }
     }
 
@@ -45,14 +46,11 @@ public class ActiveVisitorService(MyDbContext db)
             foreach (var projectId in _activeVisitors.Keys)
             {
                 var stale = _activeVisitors[projectId]
-                  .Where(kv => kv.Value < cutoff)
-                  .Select(kv => kv.Key)
-                  .ToList();
-
+                    .Where(kv => kv.Value < cutoff)
+                    .Select(kv => kv.Key)
+                    .ToList();
                 foreach (var key in stale)
-                {
                     _activeVisitors[projectId].Remove(key);
-                }
             }
         }
     }
