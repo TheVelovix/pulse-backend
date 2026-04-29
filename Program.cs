@@ -113,6 +113,10 @@ builder.Services.AddSingleton<TurnstileService>();
 builder.Services.AddSingleton<EmailService>();
 builder.Services.AddHostedService<WeeklyReportService>();
 builder.Services.AddSingleton<ActiveVisitorService>();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+});
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
@@ -126,6 +130,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseResponseCompression();
 app.UseHsts();
 app.UseHttpsRedirection();
 app.UseCors("frontend");
