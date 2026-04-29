@@ -19,7 +19,7 @@ public class HeartbeatController(ActiveVisitorService activeVisitorService, MyDb
     [HttpPost]
     public async Task<IActionResult> RecordHeartbeat([FromBody] HeartbeatDto dto)
     {
-        var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == dto.ProjectId);
+        var project = await _db.Projects.Include(p => p.User).FirstOrDefaultAsync(p => p.Id == dto.ProjectId);
         if (project == null) return NotFound();
         if (project.User.SubscriptionPlan != Plans.Pro) return BadRequest();
         _activeVisitorService.RecordHeartBeat(dto.ProjectId, dto.VisitorId);
