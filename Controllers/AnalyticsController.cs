@@ -180,6 +180,21 @@ public class AnalyticsController(MyDbContext db, ActiveVisitorService activeVisi
 
             utmStats = new { topSources, topMediums, topCampaigns, topContents, topTerms };
         }
+        object? customEvents = null;
+        if (project.User.SubscriptionPlan == Plans.Pro)
+        {
+            customEvents = await _db.CustomEvents
+                .Where(e => e.ProjectId == id && e.CreatedAt >= cutoff && e.CreatedAt <= ceiling)
+                .GroupBy(e => e.Name)
+                .Select(g => new
+                {
+                    Name = g.Key,
+                    Count = g.Count(),
+                    TotalRevenue = g.Any(e => e.Revenue != null) ? g.Sum(e => e.Revenue) : null
+                })
+                .OrderByDescending(x => x.Count)
+                .ToListAsync();
+        }
         return Ok(new
         {
             totalViews,
@@ -196,7 +211,8 @@ public class AnalyticsController(MyDbContext db, ActiveVisitorService activeVisi
             timeOnPage,
             utmStats,
             outboundLinks,
-            aiTraffic
+            aiTraffic,
+            customEvents,
         });
     }
 
