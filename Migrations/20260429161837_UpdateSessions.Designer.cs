@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using pulse.Data;
@@ -11,9 +12,11 @@ using pulse.Data;
 namespace pulse.Migrations
 {
     [DbContext(typeof(MyDbContext))]
-    partial class MyDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260429161837_UpdateSessions")]
+    partial class UpdateSessions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -50,38 +53,6 @@ namespace pulse.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("ApiKeys");
-                });
-
-            modelBuilder.Entity("pulse.Models.Heartbeat", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("ProjectId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("VisitorId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProjectId");
-
-                    b.ToTable("Heartbeats");
                 });
 
             modelBuilder.Entity("pulse.Models.PageView", b =>
@@ -285,17 +256,6 @@ namespace pulse.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("pulse.Models.Heartbeat", b =>
-                {
-                    b.HasOne("pulse.Models.Project", "Project")
-                        .WithMany("Heartbeats")
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Project");
-                });
-
             modelBuilder.Entity("pulse.Models.PageView", b =>
                 {
                     b.HasOne("pulse.Models.Project", "Project")
@@ -353,8 +313,6 @@ namespace pulse.Migrations
 
             modelBuilder.Entity("pulse.Models.Project", b =>
                 {
-                    b.Navigation("Heartbeats");
-
                     b.Navigation("PageViews");
 
                     b.Navigation("Sessions");

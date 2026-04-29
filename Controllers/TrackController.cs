@@ -46,6 +46,25 @@ public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaPar
         {
             Console.WriteLine($"Failed to get country {ex.Message}");
         }
+        var visitorId = body.VisitorId;
+        var session = await _db.Sessions.FirstOrDefaultAsync(s => s.ProjectId == body.ProjectId && s.VisitorId == visitorId && s.LastActivity >= DateTime.UtcNow.AddMinutes(-30));
+        if (session == null)
+        {
+            session = new Session
+            {
+                ProjectId = body.ProjectId,
+                VisitorId = visitorId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+            };
+            _db.Sessions.Add(session);
+            await _db.SaveChangesAsync();
+        }
+        else
+        {
+            session.LastActivity = DateTime.UtcNow;
+            session.UpdatedAt = DateTime.UtcNow;
+        }
         _db.PageViews.Add(new PageView
         {
             ProjectId = body.ProjectId,
@@ -54,7 +73,8 @@ public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaPar
             Device = device,
             Os = os,
             Country = country,
-            Browser = browser
+            Browser = browser,
+            SessionId = session.Id.ToString()
         });
         await _db.SaveChangesAsync();
         return Ok();

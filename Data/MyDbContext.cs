@@ -15,6 +15,8 @@ public class MyDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
     public DbSet<ApiKey> ApiKeys { get; set; }
+    public DbSet<Session> Sessions { get; set; }
+    public DbSet<Heartbeat> Heartbeats { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -43,6 +45,18 @@ public class MyDbContext : DbContext
             .HasOne(k => k.User)
             .WithMany(u => u.ApiKeys)
             .HasForeignKey(k => k.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Session>()
+            .HasOne(s => s.Project)
+            .WithMany(p => p.Sessions)
+            .HasForeignKey(s => s.ProjectId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<Heartbeat>()
+            .HasOne(h => h.Project)
+            .WithMany(p => p.Heartbeats)
+            .HasForeignKey(h => h.ProjectId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }
