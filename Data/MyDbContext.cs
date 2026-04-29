@@ -17,11 +17,12 @@ public class MyDbContext : DbContext
     public DbSet<ApiKey> ApiKeys { get; set; }
     public DbSet<Session> Sessions { get; set; }
     public DbSet<Heartbeat> Heartbeats { get; set; }
+    public DbSet<CustomEvent> CustomEvents { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Project>()
-            .HasOne(p => p.User)
+        .HasOne(p => p.User)
             .WithMany(u => u.Projects)
             .HasForeignKey(p => p.UserId)
             .OnDelete(DeleteBehavior.Cascade);
@@ -57,6 +58,12 @@ public class MyDbContext : DbContext
             .HasOne(h => h.Project)
             .WithMany(p => p.Heartbeats)
             .HasForeignKey(h => h.ProjectId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<CustomEvent>()
+            .HasOne(e => e.Project)
+            .WithMany(p => p.CustomEvents)
+            .HasForeignKey(e => e.ProjectId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

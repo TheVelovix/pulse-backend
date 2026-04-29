@@ -12,4 +12,5 @@ public class Project
     public ICollection<PageView> PageViews { get; set; } = [];
     public ICollection<Session> Sessions { get; set; } = [];
     public ICollection<Heartbeat> Heartbeats { get; set; } = [];
+    public ICollection<CustomEvent> CustomEvents { get; set; } = [];
 }
