@@ -11,6 +11,11 @@ public class PageView
     public string? Country { get; set; }
     public string? Browser { get; set; }
     public string SessionId { get; set; } = string.Empty;
+    public string? UtmSource { get; set; }
+    public string? UtmMedium { get; set; }
+    public string? UtmCampaign { get; set; }
+    public string? UtmContent { get; set; }
+    public string? UtmTerm { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public Project Project { get; set; } = null!;

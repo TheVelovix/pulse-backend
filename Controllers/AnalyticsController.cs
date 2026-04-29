@@ -14,6 +14,12 @@ public class AnalyticsController(MyDbContext db, ActiveVisitorService activeVisi
 {
     private readonly MyDbContext _db = db;
     private readonly ActiveVisitorService _activeVisitorService = activeVisitorService;
+    private readonly HashSet<string> aiReferrers = new()
+    {
+        "chatgpt.com", "chat.openai.com", "perplexity.ai", "claude.ai",
+        "gemini.google.com", "copilot.microsoft.com", "you.com",
+        "phind.com", "poe.com", "character.ai", "mistral.ai"
+    };
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetAnalytics(Guid id, [FromQuery] int? days, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
@@ -54,17 +60,31 @@ public class AnalyticsController(MyDbContext db, ActiveVisitorService activeVisi
             .OrderBy(x => x.Date)
             .ToListAsync();
         var topPages = await views
+            .Where(pv => !pv.Url.StartsWith("outbound://"))
             .GroupBy(pv => pv.Url)
             .Select(g => new { Url = g.Key, Count = g.Count() })
             .OrderByDescending(x => x.Count)
-            .Take(10)
+            .Take(20)
+            .ToListAsync();
+        var outboundLinks = await views
+            .Where(pv => pv.Url.StartsWith("outbound://"))
+            .GroupBy(pv => pv.Url)
+            .Select(g => new { Url = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count)
+            .Take(20)
             .ToListAsync();
         var topReferrers = await views
             .Where(pv => pv.Referrer != null)
             .GroupBy(pv => pv.Referrer)
             .Select(g => new { Referrer = g.Key, Count = g.Count() })
             .OrderByDescending(x => x.Count)
-            .Take(10)
+            .Take(20)
+            .ToListAsync();
+        var aiTraffic = await views
+            .Where(pv => pv.Referrer != null && aiReferrers.Any(ai => pv.Referrer.Contains(ai)))
+            .GroupBy(pv => pv.Referrer)
+            .Select(g => new { Referrer = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count)
             .ToListAsync();
         var devices = await views
             .GroupBy(pv => pv.Device)
@@ -123,6 +143,43 @@ public class AnalyticsController(MyDbContext db, ActiveVisitorService activeVisi
                 .Take(10)
                 .ToListAsync();
         }
+        object? utmStats = null;
+        if (project.User.SubscriptionPlan == Plans.Pro)
+        {
+            var utmViews = views.Where(pv => pv.UtmSource != null);
+            var topSources = await utmViews
+                .GroupBy(pv => pv.UtmSource)
+                .Select(g => new { Source = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .ToListAsync();
+            var topMediums = await utmViews
+                   .GroupBy(pv => pv.UtmMedium)
+                   .Select(g => new { Medium = g.Key, Count = g.Count() })
+                   .OrderByDescending(x => x.Count)
+                   .ToListAsync();
+
+            var topCampaigns = await utmViews
+                .GroupBy(pv => pv.UtmCampaign)
+                .Select(g => new { Campaign = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .ToListAsync();
+
+            var topContents = await utmViews
+                .Where(pv => pv.UtmContent != null)
+                .GroupBy(pv => pv.UtmContent)
+                .Select(g => new { Content = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .ToListAsync();
+
+            var topTerms = await utmViews
+                .Where(pv => pv.UtmTerm != null)
+                .GroupBy(pv => pv.UtmTerm)
+                .Select(g => new { Term = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .ToListAsync();
+
+            utmStats = new { topSources, topMediums, topCampaigns, topContents, topTerms };
+        }
         return Ok(new
         {
             totalViews,
@@ -137,6 +194,9 @@ public class AnalyticsController(MyDbContext db, ActiveVisitorService activeVisi
             bounceRate,
             entryPages,
             timeOnPage,
+            utmStats,
+            outboundLinks,
+            aiTraffic
         });
     }
 

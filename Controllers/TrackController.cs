@@ -20,7 +20,14 @@ public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaPar
     [EnableCors("tracker")]
     [HttpPost]
     [EnableRateLimiting("track")]
-    public async Task<IActionResult> Track([FromBody] TrackBody body)
+    public async Task<IActionResult> Track(
+        [FromBody] TrackBody body,
+        [FromQuery] string? utmSource,
+        [FromQuery] string? utmMedium,
+        [FromQuery] string? utmCampaign,
+        [FromQuery] string? utmContent,
+        [FromQuery] string? utmTerm
+    )
     {
         var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == body.ProjectId);
         if (project == null)
@@ -74,7 +81,12 @@ public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaPar
             Os = os,
             Country = country,
             Browser = browser,
-            SessionId = session.Id.ToString()
+            SessionId = session.Id.ToString(),
+            UtmSource = utmSource,
+            UtmMedium = utmMedium,
+            UtmCampaign = utmCampaign,
+            UtmContent = utmContent,
+            UtmTerm = utmTerm
         });
         await _db.SaveChangesAsync();
         return Ok();
