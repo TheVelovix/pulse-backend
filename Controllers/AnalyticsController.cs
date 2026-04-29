@@ -82,7 +82,47 @@ public class AnalyticsController(MyDbContext db, ActiveVisitorService activeVisi
             .Select(g => new { Country = g.Key, Count = g.Count() })
             .OrderByDescending(x => x.Count)
             .ToListAsync();
-
+        var operatingSystems = await views
+            .Where(pv => pv.Os != null)
+            .GroupBy(pv => pv.Os)
+            .Select(g => new { Os = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count)
+            .ToListAsync();
+        var uniqueVisitors = await views.Select(pv => pv.SessionId).Distinct().CountAsync();
+        var bounceRate = await _db.Sessions
+            .Where(s => s.ProjectId == id && s.CreatedAt >= cutoff && s.CreatedAt <= ceiling)
+            .Select(s => new
+            {
+                s.Id,
+                PageViewCount = _db.PageViews.Count(pv => pv.SessionId == s.Id.ToString())
+            })
+            .AverageAsync(s => (double?)(s.PageViewCount == 1 ? 1.0 : 0.0)) ?? 0.0;
+        var entryPages = await _db.Sessions
+            .Where(s => s.ProjectId == id && s.CreatedAt >= cutoff && s.CreatedAt <= ceiling)
+            .Select(s => _db.PageViews
+                .Where(pv => pv.SessionId == s.Id.ToString())
+                .OrderBy(pv => pv.CreatedAt)
+                .Select(pv => pv.Url)
+                .FirstOrDefault())
+            .Where(url => url != null)
+            .GroupBy(url => url)
+            .Select(g => new { Url = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count)
+            .Take(10)
+            .ToListAsync();
+        object? timeOnPage = null;
+        if (project.User.SubscriptionPlan == Plans.Pro)
+        {
+            timeOnPage = await _db.Heartbeats
+            .Where(h => h.ProjectId == id && h.CreatedAt >= cutoff && h.CreatedAt <= ceiling)
+                .GroupBy(h => new { h.Url, h.VisitorId })
+                .Select(g => new { g.Key.Url, Seconds = g.Count() * 30 })
+                .GroupBy(x => x.Url)
+                .Select(g => new { Url = g.Key, AvgSeconds = (int)g.Average(x => x.Seconds) })
+                .OrderByDescending(x => x.AvgSeconds)
+                .Take(10)
+                .ToListAsync();
+        }
         return Ok(new
         {
             totalViews,
@@ -92,6 +132,11 @@ public class AnalyticsController(MyDbContext db, ActiveVisitorService activeVisi
             devices,
             browsers,
             countries,
+            operatingSystems,
+            uniqueVisitors,
+            bounceRate,
+            entryPages,
+            timeOnPage,
         });
     }
 

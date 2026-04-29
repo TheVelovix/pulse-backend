@@ -10,4 +10,6 @@ public class Project
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public User User { get; set; } = null!;
     public ICollection<PageView> PageViews { get; set; } = [];
+    public ICollection<Session> Sessions { get; set; } = [];
+    public ICollection<Heartbeat> Heartbeats { get; set; } = [];
 }

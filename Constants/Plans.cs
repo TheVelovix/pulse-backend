@@ -8,7 +8,7 @@ public static class Plans
     public static readonly Dictionary<string, int> RetentionDays = new()
     {
         { Free, 30 },
-        { Pro, 365 },
+        { Pro, 730 },
     };
 
     public static readonly Dictionary<string, int> ProjectLimits = new()
