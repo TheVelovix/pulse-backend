@@ -22,11 +22,11 @@ public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaPar
     [EnableRateLimiting("track")]
     public async Task<IActionResult> Track(
         [FromBody] TrackBody body,
-        [FromQuery] string? utmSource,
-        [FromQuery] string? utmMedium,
-        [FromQuery] string? utmCampaign,
-        [FromQuery] string? utmContent,
-        [FromQuery] string? utmTerm
+        [FromQuery(Name = "utm_source")] string? utmSource,
+        [FromQuery(Name = "utm_medium")] string? utmMedium,
+        [FromQuery(Name = "utm_campaign")] string? utmCampaign,
+        [FromQuery(Name = "utm_content")] string? utmContent,
+        [FromQuery(Name = "utm_term")] string? utmTerm
     )
     {
         var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == body.ProjectId);
