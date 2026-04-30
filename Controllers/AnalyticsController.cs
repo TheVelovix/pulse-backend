@@ -4,22 +4,18 @@ using Microsoft.EntityFrameworkCore;
 using pulse.Data;
 using pulse.Constants;
 using pulse.Services;
+using pulse.Helpers;
 
 namespace pulse.Controllers;
 
 [ApiController]
 [Authorize(Policy = "JwtOrApiKey")]
 [Route("api/analytics")]
-public class AnalyticsController(MyDbContext db, ActiveVisitorService activeVisitorService) : BaseController
+public class AnalyticsController(MyDbContext db, ActiveVisitorService activeVisitorService, Utils utils) : BaseController
 {
     private readonly MyDbContext _db = db;
     private readonly ActiveVisitorService _activeVisitorService = activeVisitorService;
-    private readonly HashSet<string> aiReferrers = new()
-    {
-        "chatgpt.com", "chat.openai.com", "perplexity.ai", "claude.ai",
-        "gemini.google.com", "copilot.microsoft.com", "you.com",
-        "phind.com", "poe.com", "character.ai", "mistral.ai"
-    };
+    private readonly Utils _utils = utils;
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetAnalytics(Guid id, [FromQuery] int? days, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
@@ -29,191 +25,9 @@ public class AnalyticsController(MyDbContext db, ActiveVisitorService activeVisi
         {
             return Unauthorized();
         }
-        var project = await _db.Projects.Include(p => p.User).FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
-        if (project == null)
-        {
-            return NotFound();
-        }
-        var maxRetentionDays = Plans.RetentionDays[project.User.SubscriptionPlan];
-        var earliestAllowed = DateTime.UtcNow.AddDays(-maxRetentionDays);
-        DateTime cutoff;
-        DateTime ceiling = to.HasValue ? to.Value.ToUniversalTime() : DateTime.UtcNow;
-        if (from.HasValue)
-        {
-            cutoff = from.Value.ToUniversalTime();
-        }
-        else if (days.HasValue)
-        {
-            cutoff = DateTime.UtcNow.AddDays(-days.Value);
-        }
-        else
-        {
-            cutoff = DateTime.MinValue;
-        }
-        if (cutoff < earliestAllowed) cutoff = earliestAllowed;
-
-        var views = _db.PageViews.Where(pv => pv.ProjectId == id && pv.CreatedAt >= cutoff && pv.CreatedAt <= ceiling);
-        var totalViews = await views.CountAsync();
-        var viewsPerDay = await views
-            .GroupBy(pv => pv.CreatedAt.Date)
-            .Select(g => new { Date = g.Key, Count = g.Count() })
-            .OrderBy(x => x.Date)
-            .ToListAsync();
-        var topPages = await views
-            .Where(pv => !pv.Url.StartsWith("outbound://"))
-            .GroupBy(pv => pv.Url)
-            .Select(g => new { Url = g.Key, Count = g.Count() })
-            .OrderByDescending(x => x.Count)
-            .Take(20)
-            .ToListAsync();
-        var outboundLinks = await views
-            .Where(pv => pv.Url.StartsWith("outbound://"))
-            .GroupBy(pv => pv.Url)
-            .Select(g => new { Url = g.Key, Count = g.Count() })
-            .OrderByDescending(x => x.Count)
-            .Take(20)
-            .ToListAsync();
-        var topReferrers = await views
-            .Where(pv => pv.Referrer != null)
-            .GroupBy(pv => pv.Referrer)
-            .Select(g => new { Referrer = g.Key, Count = g.Count() })
-            .OrderByDescending(x => x.Count)
-            .Take(20)
-            .ToListAsync();
-        var aiTraffic = await views
-            .Where(pv => pv.Referrer != null && aiReferrers.Any(ai => pv.Referrer.Contains(ai)))
-            .GroupBy(pv => pv.Referrer)
-            .Select(g => new { Referrer = g.Key, Count = g.Count() })
-            .OrderByDescending(x => x.Count)
-            .ToListAsync();
-        var devices = await views
-            .GroupBy(pv => pv.Device)
-            .Select(g => new { Device = g.Key, Count = g.Count() })
-            .OrderByDescending(x => x.Count)
-            .ToListAsync();
-        var browsers = await views
-            .GroupBy(pv => pv.Browser)
-            .Select(g => new { Browser = g.Key, Count = g.Count() })
-            .OrderByDescending(x => x.Count)
-            .ToListAsync();
-        var countries = await views
-            .Where(pv => pv.Country != null)
-            .GroupBy(pv => pv.Country)
-            .Select(g => new { Country = g.Key, Count = g.Count() })
-            .OrderByDescending(x => x.Count)
-            .ToListAsync();
-        var operatingSystems = await views
-            .Where(pv => pv.Os != null)
-            .GroupBy(pv => pv.Os)
-            .Select(g => new { Os = g.Key, Count = g.Count() })
-            .OrderByDescending(x => x.Count)
-            .ToListAsync();
-        var uniqueVisitors = await views.Select(pv => pv.SessionId).Distinct().CountAsync();
-        var bounceRate = await _db.Sessions
-            .Where(s => s.ProjectId == id && s.CreatedAt >= cutoff && s.CreatedAt <= ceiling)
-            .Select(s => new
-            {
-                s.Id,
-                PageViewCount = _db.PageViews.Count(pv => pv.SessionId == s.Id.ToString())
-            })
-            .AverageAsync(s => (double?)(s.PageViewCount == 1 ? 1.0 : 0.0)) ?? 0.0;
-        var entryPages = await _db.Sessions
-            .Where(s => s.ProjectId == id && s.CreatedAt >= cutoff && s.CreatedAt <= ceiling)
-            .Select(s => _db.PageViews
-                .Where(pv => pv.SessionId == s.Id.ToString())
-                .OrderBy(pv => pv.CreatedAt)
-                .Select(pv => pv.Url)
-                .FirstOrDefault())
-            .Where(url => url != null)
-            .GroupBy(url => url)
-            .Select(g => new { Url = g.Key, Count = g.Count() })
-            .OrderByDescending(x => x.Count)
-            .Take(10)
-            .ToListAsync();
-        object? timeOnPage = null;
-        if (project.User.SubscriptionPlan == Plans.Pro)
-        {
-            timeOnPage = await _db.Heartbeats
-            .Where(h => h.ProjectId == id && h.CreatedAt >= cutoff && h.CreatedAt <= ceiling)
-                .GroupBy(h => new { h.Url, h.VisitorId })
-                .Select(g => new { g.Key.Url, Seconds = g.Count() * 30 })
-                .GroupBy(x => x.Url)
-                .Select(g => new { Url = g.Key, AvgSeconds = (int)g.Average(x => x.Seconds) })
-                .OrderByDescending(x => x.AvgSeconds)
-                .Take(10)
-                .ToListAsync();
-        }
-        object? utmStats = null;
-        if (project.User.SubscriptionPlan == Plans.Pro)
-        {
-            var utmViews = views.Where(pv => pv.UtmSource != null);
-            var topSources = await utmViews
-                .GroupBy(pv => pv.UtmSource)
-                .Select(g => new { Source = g.Key, Count = g.Count() })
-                .OrderByDescending(x => x.Count)
-                .ToListAsync();
-            var topMediums = await utmViews
-                   .GroupBy(pv => pv.UtmMedium)
-                   .Select(g => new { Medium = g.Key, Count = g.Count() })
-                   .OrderByDescending(x => x.Count)
-                   .ToListAsync();
-
-            var topCampaigns = await utmViews
-                .GroupBy(pv => pv.UtmCampaign)
-                .Select(g => new { Campaign = g.Key, Count = g.Count() })
-                .OrderByDescending(x => x.Count)
-                .ToListAsync();
-
-            var topContents = await utmViews
-                .Where(pv => pv.UtmContent != null)
-                .GroupBy(pv => pv.UtmContent)
-                .Select(g => new { Content = g.Key, Count = g.Count() })
-                .OrderByDescending(x => x.Count)
-                .ToListAsync();
-
-            var topTerms = await utmViews
-                .Where(pv => pv.UtmTerm != null)
-                .GroupBy(pv => pv.UtmTerm)
-                .Select(g => new { Term = g.Key, Count = g.Count() })
-                .OrderByDescending(x => x.Count)
-                .ToListAsync();
-
-            utmStats = new { topSources, topMediums, topCampaigns, topContents, topTerms };
-        }
-        object? customEvents = null;
-        if (project.User.SubscriptionPlan == Plans.Pro)
-        {
-            customEvents = await _db.CustomEvents
-                .Where(e => e.ProjectId == id && e.CreatedAt >= cutoff && e.CreatedAt <= ceiling)
-                .GroupBy(e => e.Name)
-                .Select(g => new
-                {
-                    Name = g.Key,
-                    Count = g.Count(),
-                    TotalRevenue = g.Any(e => e.Revenue != null) ? g.Sum(e => e.Revenue) : null
-                })
-                .OrderByDescending(x => x.Count)
-                .ToListAsync();
-        }
-        return Ok(new
-        {
-            totalViews,
-            viewsPerDay,
-            topPages,
-            topReferrers,
-            devices,
-            browsers,
-            countries,
-            operatingSystems,
-            uniqueVisitors,
-            bounceRate,
-            entryPages,
-            timeOnPage,
-            utmStats,
-            outboundLinks,
-            aiTraffic,
-            customEvents,
-        });
+        var analytics = await _utils.GetProjectAnalytics(id, userId.Value, days, from, to);
+        if (analytics == null) return NotFound("project-not-found");
+        return Ok(analytics);
     }
 
     [HttpGet("{id}/export")]

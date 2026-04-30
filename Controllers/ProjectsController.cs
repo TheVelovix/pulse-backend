@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -26,6 +27,8 @@ public class ProjectsController(MyDbContext db) : BaseController
             p.Domain,
             p.CreatedAt,
             p.UpdatedAt,
+            p.IsPublic,
+            p.PublicSlug
         }));
     }
 
@@ -43,6 +46,8 @@ public class ProjectsController(MyDbContext db) : BaseController
             project.Domain,
             project.CreatedAt,
             project.UpdatedAt,
+            project.IsPublic,
+            project.PublicSlug
         });
     }
     [HttpPost]
@@ -81,5 +86,32 @@ public class ProjectsController(MyDbContext db) : BaseController
         db.Projects.Remove(project);
         await db.SaveChangesAsync();
         return Ok("project-deleted");
+    }
+
+    [HttpPatch("{id}/visibility")]
+    public async Task<IActionResult> ToggleProjectVisibility(Guid id)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+        var project = await db.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+        if (project == null) return NotFound("project-not-found");
+        project.IsPublic = !project.IsPublic;
+        if (project.IsPublic && string.IsNullOrEmpty(project.PublicSlug))
+        {
+            var baseSlug = Regex.Replace(project.Name.ToLower(), @"[^a-z0-9\s-]", "")
+                                .Trim()
+                                .Replace(" ", "-");
+            baseSlug = Regex.Replace(baseSlug, @"-+", "-");
+            if (string.IsNullOrEmpty(baseSlug)) baseSlug = id.ToString();
+            var slug = baseSlug;
+            var counter = 1;
+            while (await db.Projects.AnyAsync(p => p.PublicSlug == slug))
+            {
+                slug = $"{baseSlug}-{counter++}";
+            }
+            project.PublicSlug = slug;
+        }
+        await db.SaveChangesAsync();
+        return Ok(new { project.IsPublic, project.PublicSlug });
     }
 }

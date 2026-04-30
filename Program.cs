@@ -13,6 +13,7 @@ using UAParser;
 using Microsoft.AspNetCore.Authentication;
 using pulse.Middleware;
 using System.Text.Json.Serialization;
+using pulse.Helpers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -113,6 +114,7 @@ builder.Services.AddSingleton<TurnstileService>();
 builder.Services.AddSingleton<EmailService>();
 builder.Services.AddHostedService<WeeklyReportService>();
 builder.Services.AddSingleton<ActiveVisitorService>();
+builder.Services.AddScoped<Utils>();
 builder.Services.AddResponseCompression(options =>
 {
     options.EnableForHttps = true;
