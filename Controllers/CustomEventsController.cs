@@ -16,7 +16,6 @@ public class EventsController(MyDbContext db) : BaseController
 {
     private readonly MyDbContext _db = db;
 
-
     [EnableCors("tracker")]
     [HttpPost]
     [EnableRateLimiting("track")]

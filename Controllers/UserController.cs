@@ -11,7 +11,7 @@ using pulse.Constants;
 namespace pulse.Controllers;
 
 [ApiController]
-[Authorize(Policy = "JwtOrApiKey")]
+[Authorize]
 [Route("api/user")]
 public class UserController(MyDbContext db, PaddleService paddleService) : BaseController
 {

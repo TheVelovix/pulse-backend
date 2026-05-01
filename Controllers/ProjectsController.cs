@@ -9,7 +9,7 @@ using pulse.Models;
 namespace pulse.Controllers;
 
 [ApiController]
-[Authorize(Policy = "JwtOrApiKey")]
+[Authorize]
 [Route("api/projects")]
 public class ProjectsController(MyDbContext db) : BaseController
 {
