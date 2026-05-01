@@ -2,6 +2,7 @@ using pulse.Constants;
 using pulse.Data;
 using Microsoft.EntityFrameworkCore;
 using pulse.Models;
+using Microsoft.AspNetCore.Mvc;
 namespace pulse.Helpers;
 
 public class Utils(MyDbContext db)
@@ -215,6 +216,184 @@ public class Utils(MyDbContext db)
             CustomEvents = customEvents?.Cast<CustomEvent>().ToList() ?? []
         };
     }
+
+    public async Task<byte[]> ExportCsv(AnalyticsResult analytics)
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var prop in analytics.GetType().GetProperties())
+        {
+            var value = prop.GetValue(analytics);
+            var propertyName = GetPropertyNameForCsv(prop.Name);
+            sb.AppendLine(propertyName);
+            if (value == null) continue;
+            switch (prop.Name)
+            {
+                case nameof(AnalyticsResult.TotalViews):
+                    sb.AppendLine(value.ToString());
+                    break;
+                case nameof(AnalyticsResult.ViewsPerDay):
+                    sb.AppendLine("Date,Views");
+                    foreach (var v in (List<DailyView>)value) sb.AppendLine($"{v.Date:yyyy-MM-dd},{v.Count}");
+                    break;
+                case nameof(AnalyticsResult.TopPages):
+                    sb.AppendLine("URL,Views");
+                    foreach (var p in (List<Page>)value) sb.AppendLine($"{SanitizeCsvField(p.Url)},{p.Count}");
+                    break;
+                case nameof(AnalyticsResult.OutboundLinks):
+                    sb.AppendLine("URL,Count");
+                    foreach (var l in (List<OutboundLink>)value) sb.AppendLine($"{SanitizeCsvField(l.Url)},{l.Count}");
+                    break;
+                case nameof(AnalyticsResult.TopReferrers):
+                    sb.AppendLine("Referrer,Views");
+                    foreach (var r in (List<Referrers>)value) sb.AppendLine($"{SanitizeCsvField(r.Referrer)},{r.Count}");
+                    break;
+                case nameof(AnalyticsResult.AiTraffic):
+                    sb.AppendLine("AI Referrer,Views");
+                    foreach (var r in (List<Referrers>)value) sb.AppendLine($"{SanitizeCsvField(r.Referrer)},{r.Count}");
+                    break;
+                case nameof(AnalyticsResult.Devices):
+                    sb.AppendLine("Device,Views");
+                    foreach (var d in (List<Devices>)value) sb.AppendLine($"{SanitizeCsvField(d.Device)},{d.Count}");
+                    break;
+                case nameof(AnalyticsResult.Browsers):
+                    sb.AppendLine("Browser,Views");
+                    foreach (var b in (List<Browsers>)value) sb.AppendLine($"{SanitizeCsvField(b.Browser)},{b.Count}");
+                    break;
+                case nameof(AnalyticsResult.Countries):
+                    sb.AppendLine("Country,Views");
+                    foreach (var c in (List<Countries>)value) sb.AppendLine($"{SanitizeCsvField(c.Country)},{c.Count}");
+                    break;
+                case nameof(AnalyticsResult.OperatingSystems):
+                    sb.AppendLine("Operating System,Views");
+                    foreach (var os in (List<OperatingSystem>)value) sb.AppendLine($"{SanitizeCsvField(os.Os)},{os.Count}");
+                    break;
+                case nameof(AnalyticsResult.UniqueVisitors):
+                    sb.AppendLine(value.ToString());
+                    break;
+                case nameof(AnalyticsResult.BounceRate):
+                    string percentage = $"{(double)value * 100:F2}%";
+                    sb.AppendLine(percentage);
+                    break;
+                case nameof(AnalyticsResult.EntryPages):
+                    sb.AppendLine("Page,Views");
+                    foreach (var p in (List<Page>)value) sb.AppendLine($"{SanitizeCsvField(p.Url)},{p.Count}");
+                    break;
+                case nameof(AnalyticsResult.TimeOnPage):
+                    sb.AppendLine("Page, Avg. Seconds");
+                    foreach (var t in (List<TimeOnPage>)value) sb.AppendLine($"{SanitizeCsvField(t.Url)},{t.AvgSeconds}");
+                    break;
+                case nameof(AnalyticsResult.CustomEvents):
+                    sb.AppendLine("Event,Times Triggered,Total Revenue");
+                    foreach (var e in (List<CustomEvent>)value) sb.AppendLine($"{e.Name},{e.Count},{e.TotalRevenue ?? 0}");
+                    break;
+                case nameof(AnalyticsResult.UtmStats):
+                    var utm = (Utm)value;
+                    foreach (var property in utm.GetType().GetProperties())
+                    {
+                        var primitiveName = nameof(property);
+                        var utmPropName = GetUtmTypeName(primitiveName);
+                        var utmValue = property.GetValue(utm);
+                        switch (primitiveName)
+                        {
+                            case nameof(Utm.TopSources):
+                                sb.AppendLine("Source,Count");
+                                if (utmValue == null) break;
+                                foreach (var c in (List<TopSource>)utmValue) sb.AppendLine($"{SanitizeCsvField(c.Source)},{c.Count}");
+                                break;
+                            case nameof(Utm.TopMediums):
+                                sb.AppendLine("Medium,Count");
+                                if (utmValue == null) break;
+                                foreach (var m in (List<TopMedium>)utmValue) sb.AppendLine($"{SanitizeCsvField(m.Medium)},{m.Count}");
+                                break;
+                            case nameof(Utm.TopCampaigns):
+                                sb.AppendLine("Campaign,Count");
+                                if (utmValue == null) break;
+                                foreach (var c in (List<TopCampaign>)utmValue) sb.AppendLine($"{SanitizeCsvField(c.Campaign)},{c.Count}");
+                                break;
+                            case nameof(Utm.TopContents):
+                                sb.AppendLine("Content,Count");
+                                if (utmValue == null) break;
+                                foreach (var c in (List<TopContent>)utmValue) sb.AppendLine($"{SanitizeCsvField(c.Content)},{c.Count}");
+                                break;
+                            case nameof(Utm.TopTerms):
+                                sb.AppendLine("Term,Count");
+                                if (utmValue == null) break;
+                                foreach (var t in (List<TopTerm>)utmValue) sb.AppendLine($"{SanitizeCsvField(t.Term)},{t.Count}");
+                                break;
+                        }
+                    }
+                    break;
+            }
+            sb.AppendLine("");
+        }
+        var bytes = System.Text.Encoding.UTF8.GetBytes(sb.ToString());
+        return bytes;
+    }
+    private static string GetPropertyNameForCsv(string propertyName)
+    {
+        switch (propertyName)
+        {
+            case nameof(AnalyticsResult.TotalViews):
+                return "\"Total Views\"";
+            case nameof(AnalyticsResult.ViewsPerDay):
+                return "\"Views Per Day\"";
+            case nameof(AnalyticsResult.TopPages):
+                return "\"Top Pages\"";
+            case nameof(AnalyticsResult.OutboundLinks):
+                return "\"Outbound Links\"";
+            case nameof(AnalyticsResult.TopReferrers):
+                return "\"Top Referrers\"";
+            case nameof(AnalyticsResult.AiTraffic):
+                return "\"AI Traffic\"";
+            case nameof(AnalyticsResult.Devices):
+            case nameof(AnalyticsResult.Browsers):
+            case nameof(AnalyticsResult.Countries):
+                return propertyName;
+            case nameof(AnalyticsResult.OperatingSystems):
+                return "\"Operating Systems\"";
+            case nameof(AnalyticsResult.UniqueVisitors):
+                return "\"Unique Visitors\"";
+            case nameof(AnalyticsResult.BounceRate):
+                return "\"Bounce Rate\"";
+            case nameof(AnalyticsResult.EntryPages):
+                return "\"Entry Pages\"";
+            case nameof(AnalyticsResult.TimeOnPage):
+                return "\"Time on Page\"";
+            case nameof(AnalyticsResult.UtmStats):
+                return "\"UTM Stats\"";
+            case nameof(AnalyticsResult.CustomEvents):
+                return "\"Custom Events\"";
+            default:
+                return "";
+        }
+    }
+    private static string GetUtmTypeName(string propertyName)
+    {
+        switch (propertyName)
+        {
+            case nameof(Utm.TopSources):
+                return "Top Sources";
+            case nameof(Utm.TopMediums):
+                return "Top Mediums";
+            case nameof(Utm.TopCampaigns):
+                return "Top Campaigns";
+            case nameof(Utm.TopContents):
+                return "Top Contents";
+            case nameof(Utm.TopTerms):
+                return "Top Terms";
+            default:
+                return "";
+        }
+    }
+    private static string SanitizeCsvField(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+
+        if (value.StartsWith('=') || value.StartsWith('+') || value.StartsWith('-') || value.StartsWith('@')) value = "'" + value;
+
+        if (value.Contains(',') || value.Contains('"') || value.Contains('\n')) value = $"\"{value.Replace("\"", "\"\"")}\"";
+        return value;
+    }
 }
 
 public class AnalyticsResult
@@ -246,11 +425,7 @@ public class Page
     public string Url { get; set; } = string.Empty;
     public int Count { get; set; }
 }
-public class OutboundLink
-{
-    public string Url { get; set; } = string.Empty;
-    public int Count { get; set; }
-}
+public class OutboundLink : Page;
 public class Referrers
 {
     public string Referrer { get; set; } = string.Empty;

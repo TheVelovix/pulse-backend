@@ -52,9 +52,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 }).AddScheme<AuthenticationSchemeOptions, ApiKeyAuthHandler>("ApiKey", null);
 
 builder.Services.AddAuthorizationBuilder()
-    .AddPolicy("JwtOrApiKey", policy => policy
-        .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme, "ApiKey")
-        .RequireAuthenticatedUser());
+    .AddPolicy("ApiKey", policy => policy
+        .AddAuthenticationSchemes("ApiKey")
+        .RequireAuthenticatedUser()
+    );
+
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
