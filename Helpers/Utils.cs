@@ -2,7 +2,6 @@ using pulse.Constants;
 using pulse.Data;
 using Microsoft.EntityFrameworkCore;
 using pulse.Models;
-using Microsoft.AspNetCore.Mvc;
 namespace pulse.Helpers;
 
 public class Utils(MyDbContext db)
@@ -80,13 +79,13 @@ public class Utils(MyDbContext db)
             .OrderByDescending(x => x.Count)
             .ToListAsync();
         var devices = await views
-            .GroupBy(pv => pv.Device)
-            .Select(g => new Devices { Device = g.Key!, Count = g.Count() })
+            .GroupBy(pv => new { pv.Device, pv.DeviceBrand, pv.DeviceModel, pv.IsSpider })
+            .Select(g => new Devices { DeviceFamily = g.Key.Device!, DeviceBrand = g.Key.DeviceBrand!, DeviceModel = g.Key.DeviceModel!, IsSpider = g.Key.IsSpider, Count = g.Count() })
             .OrderByDescending(x => x.Count)
             .ToListAsync();
         var browsers = await views
-            .GroupBy(pv => pv.Browser)
-            .Select(g => new Browsers { Browser = g.Key!, Count = g.Count() })
+            .GroupBy(pv => new { pv.Browser, pv.BrowserMajor })
+            .Select(g => new Browsers { Browser = g.Key.Browser!, BrowserMajor = g.Key.BrowserMajor!, Count = g.Count() })
             .OrderByDescending(x => x.Count)
             .ToListAsync();
         var countries = await views
@@ -97,8 +96,8 @@ public class Utils(MyDbContext db)
             .ToListAsync();
         var operatingSystems = await views
             .Where(pv => pv.Os != null)
-            .GroupBy(pv => pv.Os)
-            .Select(g => new OperatingSystem { Os = g.Key!, Count = g.Count() })
+            .GroupBy(pv => new { pv.Os, pv.OsMajor })
+            .Select(g => new OperatingSystem { Os = g.Key.Os!, OsMajor = g.Key.OsMajor!, Count = g.Count() })
             .OrderByDescending(x => x.Count)
             .ToListAsync();
         var uniqueVisitors = await views.Select(pv => pv.SessionId).Distinct().CountAsync();
@@ -252,20 +251,20 @@ public class Utils(MyDbContext db)
                     foreach (var r in (List<Referrers>)value) sb.AppendLine($"{SanitizeCsvField(r.Referrer)},{r.Count}");
                     break;
                 case nameof(AnalyticsResult.Devices):
-                    sb.AppendLine("Device,Views");
-                    foreach (var d in (List<Devices>)value) sb.AppendLine($"{SanitizeCsvField(d.Device)},{d.Count}");
+                    sb.AppendLine("Device Family,Device Brand,Device Model,Views");
+                    foreach (var d in (List<Devices>)value) sb.AppendLine($"{SanitizeCsvField(d.DeviceFamily)},{SanitizeCsvField(d.DeviceBrand)},{SanitizeCsvField(d.DeviceModel)},{d.Count}");
                     break;
                 case nameof(AnalyticsResult.Browsers):
-                    sb.AppendLine("Browser,Views");
-                    foreach (var b in (List<Browsers>)value) sb.AppendLine($"{SanitizeCsvField(b.Browser)},{b.Count}");
+                    sb.AppendLine("Browser,Browser Major,Views");
+                    foreach (var b in (List<Browsers>)value) sb.AppendLine($"{SanitizeCsvField(b.Browser)},{SanitizeCsvField(b.BrowserMajor)},{b.Count}");
                     break;
                 case nameof(AnalyticsResult.Countries):
                     sb.AppendLine("Country,Views");
                     foreach (var c in (List<Countries>)value) sb.AppendLine($"{SanitizeCsvField(c.Country)},{c.Count}");
                     break;
                 case nameof(AnalyticsResult.OperatingSystems):
-                    sb.AppendLine("Operating System,Views");
-                    foreach (var os in (List<OperatingSystem>)value) sb.AppendLine($"{SanitizeCsvField(os.Os)},{os.Count}");
+                    sb.AppendLine("Operating System,OS Major,Views");
+                    foreach (var os in (List<OperatingSystem>)value) sb.AppendLine($"{SanitizeCsvField(os.Os)},{SanitizeCsvField(os.OsMajor)},{os.Count}");
                     break;
                 case nameof(AnalyticsResult.UniqueVisitors):
                     sb.AppendLine(value.ToString());
@@ -433,12 +432,16 @@ public class Referrers
 }
 public class Devices
 {
-    public string Device { get; set; } = string.Empty;
+    public string DeviceFamily { get; set; } = string.Empty;
+    public string DeviceBrand { get; set; } = string.Empty;
+    public string DeviceModel { get; set; } = string.Empty;
+    public bool IsSpider { get; set; }
     public int Count { get; set; }
 }
 public class Browsers
 {
     public string Browser { get; set; } = string.Empty;
+    public string BrowserMajor { get; set; } = string.Empty;
     public int Count { get; set; }
 }
 public class Countries
@@ -449,6 +452,7 @@ public class Countries
 public class OperatingSystem
 {
     public string Os { get; set; } = string.Empty;
+    public string OsMajor { get; set; } = string.Empty;
     public int Count { get; set; }
 }
 public class TimeOnPage

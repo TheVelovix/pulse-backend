@@ -6,10 +6,15 @@ public class PageView
     public Guid ProjectId { get; set; }
     public string Url { get; set; } = string.Empty;
     public string? Referrer { get; set; }
-    public string? Device { get; set; }
-    public string? Os { get; set; }
+    public string? Device { get; set; } // Device Family
+    public string? DeviceBrand { get; set; }
+    public string? DeviceModel { get; set; }
+    public bool IsSpider { get; set; } = false;
+    public string? Os { get; set; } // OS Family
+    public string? OsMajor { get; set; }
     public string? Country { get; set; }
-    public string? Browser { get; set; }
+    public string? Browser { get; set; } // Browser Family
+    public string? BrowserMajor { get; set; }
     public string SessionId { get; set; } = string.Empty;
     public string? UtmSource { get; set; }
     public string? UtmMedium { get; set; }
