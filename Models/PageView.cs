@@ -21,6 +21,7 @@ public class PageView
     public string? UtmCampaign { get; set; }
     public string? UtmContent { get; set; }
     public string? UtmTerm { get; set; }
+    public bool IsImported { get; set; } = false;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public Project Project { get; set; } = null!;
