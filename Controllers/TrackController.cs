@@ -6,6 +6,7 @@ using pulse.Models;
 using UAParser;
 using MaxMind.GeoIP2;
 using Microsoft.AspNetCore.Cors;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace pulse.Controllers;
 
@@ -36,9 +37,9 @@ public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaPar
         }
         var userAgent = Request.Headers.UserAgent.ToString();
         var clientInfo = _uaParser.Parse(userAgent);
-        var device = clientInfo.Device.Family;
-        var os = clientInfo.OS.Family;
-        var browser = clientInfo.UA.Family;
+        var device = clientInfo.Device;
+        var os = clientInfo.OS;
+        var browser = clientInfo.UA;
         string? country = null;
         try
         {
@@ -78,10 +79,14 @@ public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaPar
             ProjectId = body.ProjectId,
             Url = body.Url,
             Referrer = body.Referrer,
-            Device = device,
-            Os = os,
+            Device = device.Family,
+            DeviceBrand = device.Brand,
+            DeviceModel = device.Model,
+            Os = os.Family,
+            OsMajor = os.Major,
             Country = country,
-            Browser = browser,
+            Browser = browser.Family,
+            BrowserMajor = browser.Major,
             SessionId = session.Id.ToString(),
             UtmSource = utmSource,
             UtmMedium = utmMedium,
