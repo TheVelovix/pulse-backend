@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Authentication;
 using pulse.Middleware;
 using System.Text.Json.Serialization;
 using pulse.Helpers;
+using Microsoft.AspNetCore.HttpOverrides;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -139,6 +140,10 @@ app.UseResponseCompression();
 app.UseHsts();
 app.UseHttpsRedirection();
 app.UseCors("frontend");
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseRateLimiter();
