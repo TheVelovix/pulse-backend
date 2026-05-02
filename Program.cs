@@ -79,7 +79,7 @@ builder.Services.AddRateLimiter(options =>
     options.AddFixedWindowLimiter("auth", o =>
     {
         o.PermitLimit = 5;
-        o.Window = TimeSpan.FromMinutes(1);
+        o.Window = TimeSpan.FromSeconds(10);
         o.QueueLimit = 0;
     });
 });
@@ -121,6 +121,7 @@ builder.Services.AddResponseCompression(options =>
 {
     options.EnableForHttps = true;
 });
+builder.Services.AddHttpClient();
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())

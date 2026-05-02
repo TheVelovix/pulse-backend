@@ -18,6 +18,7 @@ public class MyDbContext : DbContext
     public DbSet<Session> Sessions { get; set; }
     public DbSet<Heartbeat> Heartbeats { get; set; }
     public DbSet<CustomEvent> CustomEvents { get; set; }
+    public DbSet<SearchConsoleToken> SearchConsoleTokens { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -64,6 +65,12 @@ public class MyDbContext : DbContext
             .HasOne(e => e.Project)
             .WithMany(p => p.CustomEvents)
             .HasForeignKey(e => e.ProjectId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<SearchConsoleToken>()
+            .HasOne(t => t.Project)
+            .WithOne(p => p.SearchConsoleToken)
+            .HasForeignKey<SearchConsoleToken>(t => t.ProjectId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

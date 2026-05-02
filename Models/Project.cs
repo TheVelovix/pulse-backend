@@ -15,4 +15,5 @@ public class Project
     public ICollection<Session> Sessions { get; set; } = [];
     public ICollection<Heartbeat> Heartbeats { get; set; } = [];
     public ICollection<CustomEvent> CustomEvents { get; set; } = [];
+    public SearchConsoleToken? SearchConsoleToken { get; set; }
 }

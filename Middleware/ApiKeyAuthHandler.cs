@@ -24,7 +24,6 @@ public class ApiKeyAuthHandler(
             rawKey = Request.Query["api_key"];
             if (string.IsNullOrEmpty(rawKey))
                 return AuthenticateResult.NoResult();
-
         }
 
         var hashedKey = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawKey!))).ToLower();
