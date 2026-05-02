@@ -30,6 +30,10 @@ public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaPar
         [FromQuery(Name = "utm_term")] string? utmTerm
     )
     {
+        if (body.Url.Contains("localhost"))
+        {
+            return BadRequest("invalid-url");
+        }
         var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == body.ProjectId);
         if (project == null)
         {
