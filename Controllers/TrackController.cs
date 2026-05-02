@@ -42,7 +42,8 @@ public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaPar
         string? country = null;
         try
         {
-            var ip = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            var ip = Request.Headers["X-Forwarded-For"].FirstOrDefault()?.Split(',')[0].Trim()
+                     ?? Request.HttpContext.Connection.RemoteIpAddress?.ToString();
             if (ip != null)
             {
                 var result = _reader.Country(ip);
