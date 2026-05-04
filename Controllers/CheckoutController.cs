@@ -15,7 +15,7 @@ public class CheckoutController(MyDbContext db, PaddleService paddleService) : B
     private readonly PaddleService _paddleService = paddleService;
 
     [HttpPost("subscribe")]
-    public async Task<IActionResult> Subscribe([FromQuery] bool isAnnual)
+    public async Task<IActionResult> Subscribe([FromQuery] bool annual)
     {
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
@@ -23,8 +23,8 @@ public class CheckoutController(MyDbContext db, PaddleService paddleService) : B
         if (user == null) return Unauthorized();
 
         if (user.SubscriptionPlan == "pro") return BadRequest("already subscribed");
-
-        var checkoutUrl = await _paddleService.CreateCheckoutTransaction(user.Email, user.Id, isAnnual);
+        Console.WriteLine(annual);
+        var checkoutUrl = await _paddleService.CreateCheckoutTransaction(user.Email, user.Id, annual);
         return Ok(new { url = checkoutUrl });
     }
 
