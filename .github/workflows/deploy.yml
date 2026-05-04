@@ -43,6 +43,7 @@ jobs:
             DB_URL=${{ secrets.DB_URL}}
             PADDLE_API_KEY=${{ secrets.PADDLE_API_KEY }}
             PRO_PLAN_PRICE_ID=${{ secrets.PRO_PLAN_PRICE_ID }}
+            ANNUAL_PRO_PLAN_PRICE_ID=${{ secrets.ANNUAL_PRO_PLAN_PRICE_ID }}
             PADDLE_BASE_URL=https://api.paddle.com
             PADDLE_WEBHOOK_SECRET=${{ secrets.PADDLE_WEBHOOK_SECRET }}
             PADDLE_SUCCESS_URL=https://pulse.velovix.com/dashboard

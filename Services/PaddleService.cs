@@ -8,13 +8,14 @@ public class PaddleService
     private readonly string _apiKey = Environment.GetEnvironmentVariable("PADDLE_API_KEY")!;
     public string _webhookSecret = Environment.GetEnvironmentVariable("PADDLE_WEBHOOK_SECRET")!;
     private readonly string _proPlanPriceId = Environment.GetEnvironmentVariable("PRO_PLAN_PRICE_ID")!;
+    private readonly string _annualProPlanPriceId = Environment.GetEnvironmentVariable("ANNUAL_PRO_PLAN_PRICE_ID")!;
     private readonly string successUrl = Environment.GetEnvironmentVariable("PADDLE_SUCCESS_URL")!;
-    public async Task<string> CreateCheckoutTransaction(string userEmail, long userId)
+    public async Task<string> CreateCheckoutTransaction(string userEmail, long userId, bool isAnnual)
     {
         _http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _apiKey);
         var body = new
         {
-            items = new[] { new { price_id = _proPlanPriceId, quantity = 1 } },
+            items = new[] { new { price_id = !isAnnual ? _proPlanPriceId : _annualProPlanPriceId, quantity = 1 } },
             customer = new { email = userEmail },
             custom_data = new { user_id = userId.ToString() },
             checkout = new { url = successUrl }
