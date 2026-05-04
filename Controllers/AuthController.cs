@@ -134,8 +134,17 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
         await _db.RefreshTokens.Where(t => t.UserId == userId).ExecuteDeleteAsync();
-        Response.Cookies.Delete("accessToken");
-        Response.Cookies.Delete("refreshToken");
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.None,
+            Domain = _isProduction ? ".velovix.com" : null,
+            Expires = DateTime.UtcNow.AddDays(-1)
+        };
+
+        Response.Cookies.Append("accessToken", "", cookieOptions);
+        Response.Cookies.Append("refreshToken", "", cookieOptions);
         return Ok("success");
     }
 
