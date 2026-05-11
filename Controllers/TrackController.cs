@@ -19,7 +19,12 @@ public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaPar
     private readonly Parser _uaParser = uaParser;
     private readonly IWebHostEnvironment _env = env;
     static string NormalizeHost(string host) => host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? host[4..] : host;
-
+    static string ExtractHost(string domain)
+    {
+        if (!domain.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            domain = $"https://{domain}";
+        return Uri.TryCreate(domain, UriKind.Absolute, out var uri) ? uri.Host : domain;
+    }
     [EnableCors("tracker")]
     [HttpPost]
     [EnableRateLimiting("track")]
@@ -51,10 +56,7 @@ public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaPar
 
             var requestHost = originUri.Host;
 
-            if (!Uri.TryCreate(project.Domain, UriKind.Absolute, out var projectUri))
-                return StatusCode(500, "invalid-project-domain");
-
-            var projectHost = projectUri.Host;
+            var projectHost = ExtractHost(project.Domain);
 
             if (!NormalizeHost(requestHost).Equals(NormalizeHost(projectHost), StringComparison.OrdinalIgnoreCase))
                 return Unauthorized("domain-mismatch");
