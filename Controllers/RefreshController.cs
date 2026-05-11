@@ -11,11 +11,11 @@ namespace pulse.Controllers;
 
 [ApiController]
 [Route("api/refresh")]
-public class RefreshController(MyDbContext db, JwtService jwtService) : ControllerBase
+public class RefreshController(MyDbContext db, JwtService jwtService, IWebHostEnvironment env) : ControllerBase
 {
     private readonly MyDbContext _db = db;
     private readonly JwtService _jwtService = jwtService;
-    private readonly bool _isProduction = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production";
+    private readonly bool _isProduction = env.IsProduction();
 
     [HttpPost]
     public async Task<IActionResult> NewRefreshToken()

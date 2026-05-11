@@ -12,11 +12,13 @@ namespace pulse.Controllers;
 
 [ApiController]
 [Route("api/track")]
-public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaParser) : BaseController
+public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaParser, IWebHostEnvironment env) : BaseController
 {
     private readonly MyDbContext _db = db;
     private readonly DatabaseReader _reader = reader;
     private readonly Parser _uaParser = uaParser;
+    private readonly IWebHostEnvironment _env = env;
+    static string NormalizeHost(string host) => host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? host[4..] : host;
 
     [EnableCors("tracker")]
     [HttpPost]
@@ -30,7 +32,7 @@ public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaPar
         [FromQuery(Name = "utm_term")] string? utmTerm
     )
     {
-        if (body.Url.Contains("localhost"))
+        if (_env.IsProduction() && body.Url.Contains("localhost"))
         {
             return BadRequest("invalid-url");
         }
@@ -39,6 +41,25 @@ public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaPar
         {
             return NotFound("project-not-found");
         }
+        if (_env.IsProduction())
+        {
+            var origin = Request.Headers.Origin.FirstOrDefault() ?? Request.Headers.Referer.FirstOrDefault();
+            if (string.IsNullOrEmpty(origin)) return Unauthorized("missing-origin");
+
+            if (!Uri.TryCreate(origin, UriKind.Absolute, out var originUri))
+                return Unauthorized("invalid-origin");
+
+            var requestHost = originUri.Host;
+
+            if (!Uri.TryCreate(project.Domain, UriKind.Absolute, out var projectUri))
+                return StatusCode(500, "invalid-project-domain");
+
+            var projectHost = projectUri.Host;
+
+            if (!NormalizeHost(requestHost).Equals(NormalizeHost(projectHost), StringComparison.OrdinalIgnoreCase))
+                return Unauthorized("domain-mismatch");
+        }
+
         var userAgent = Request.Headers.UserAgent.ToString();
         var clientInfo = _uaParser.Parse(userAgent);
         var device = clientInfo.Device;

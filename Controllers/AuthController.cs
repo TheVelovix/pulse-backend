@@ -15,12 +15,12 @@ namespace pulse.Controllers;
 [ApiController]
 [EnableRateLimiting("auth")]
 [Route("api/auth")]
-public class AuthController(JwtService jwtService, MyDbContext db, TurnstileService turnstile, EmailService emailService) : BaseController
+public class AuthController(JwtService jwtService, MyDbContext db, TurnstileService turnstile, EmailService emailService, IWebHostEnvironment env) : BaseController
 {
     private readonly JwtService _jwtService = jwtService;
     private readonly MyDbContext _db = db;
     private readonly EmailAddressAttribute _email = new();
-    private readonly bool _isProduction = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production";
+    private readonly bool _isProduction = env.IsProduction();
     private readonly TurnstileService _turnstile = turnstile;
     private readonly EmailService _emailService = emailService;
 
