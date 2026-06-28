@@ -6,7 +6,6 @@ using pulse.Models;
 using UAParser;
 using MaxMind.GeoIP2;
 using Microsoft.AspNetCore.Cors;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace pulse.Controllers;
 

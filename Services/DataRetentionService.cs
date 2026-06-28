@@ -37,9 +37,14 @@ public class DataRetentionService(IServiceScopeFactory scopeFactory, ILogger<Dat
             .Where(p => p.Project.User.SubscriptionPlan == Plans.Free && p.CreatedAt < freeRetention)
             .ExecuteDeleteAsync();
         var proDeleted = await db.PageViews
-            .Where(p => p.Project.User.SubscriptionPlan == Plans.Pro && p.CreatedAt < proRetention)
+            .Where(p =>
+                (p.Project.User.SubscriptionPlan == Plans.Pro ||
+                    (p.Project.User.BundledSubscription != null && p.Project.User.BundledSubscription.Plan == Plans.Pro && p.Project.User.BundledSubscription.ExpiresAt > DateTime.UtcNow)
+                )
+                && p.CreatedAt < proRetention)
             .ExecuteDeleteAsync();
-
+#pragma warning disable CA1873
         _logger.LogInformation("Data retention cleanup: {FreeDeleted} free records, {ProDeleted} pro records", freeDeleted, proDeleted);
+#pragma warning restore CA1873
     }
 }

@@ -42,10 +42,7 @@ public class DeveloperController(MyDbContext db, ActiveVisitorService activeVisi
         {
             return NotFound();
         }
-        if (project.User.SubscriptionPlan != Plans.Pro)
-        {
-            return Forbid("You must be a Pro user to export analytics.");
-        }
+        // No need to check if the user is has a paid plan since the ApiKeyAuthHandler checks for it
         var analytics = await _utils.GetProjectAnalytics(project.Id, userId, days, from, to);
         if (analytics == null)
         {
@@ -124,7 +121,8 @@ public class DeveloperController(MyDbContext db, ActiveVisitorService activeVisi
 
         var user = await _db.Users.FindAsync(userId);
         if (user == null) return Unauthorized();
-        var projectLimit = Plans.ProjectLimits[user.SubscriptionPlan];
+        bool bundledSubActive = user.BundledSubscription != null && user.BundledSubscription.ExpiresAt > DateTime.UtcNow;
+        var projectLimit = Plans.ProjectLimits[bundledSubActive ? user.BundledSubscription!.Plan : user.SubscriptionPlan];
         var projectsCount = await _db.Projects.CountAsync(p => p.UserId == userId);
         if (projectsCount >= projectLimit)
         {
@@ -207,7 +205,7 @@ public class DeveloperController(MyDbContext db, ActiveVisitorService activeVisi
         if (userId == null) return Unauthorized();
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null) return Unauthorized();
-        if (user.SubscriptionPlan != Plans.Pro) return Unauthorized("api-key-requires-pro-plan");
+        // No need to check if the user has a paid plan since the ApiKeyAuthHandler checks for it
 
         var apiKeys = await _db.ApiKeys.Where(k => k.UserId == userId.Value).ToListAsync();
         var strippedKeys = apiKeys.Select(k => new { name = k.Name, createdAt = k.CreatedAt });
@@ -221,7 +219,7 @@ public class DeveloperController(MyDbContext db, ActiveVisitorService activeVisi
         if (userId == null) return Unauthorized();
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null) return Unauthorized();
-        if (user.SubscriptionPlan != Plans.Pro) return Unauthorized("api-key-requires-pro-plan");
+        // No need to check if the user has a paid plan since the ApiKeyAuthHandler checks for it
         var existingKey = await _db.ApiKeys.FirstOrDefaultAsync(k => k.Name == name && k.UserId == userId);
         if (existingKey != null)
         {
@@ -251,7 +249,7 @@ public class DeveloperController(MyDbContext db, ActiveVisitorService activeVisi
         if (userId == null) return Unauthorized();
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null) return Unauthorized();
-        if (user.SubscriptionPlan != Plans.Pro) return Unauthorized("api-key-requires-pro-plan");
+        // No need to check if the user has a paid plan since the ApiKeyAuthHandler checks for it
         var apiKey = await _db.ApiKeys.FirstOrDefaultAsync(k => k.Name == name && k.UserId == userId.Value);
         if (apiKey == null) return NotFound();
         _db.ApiKeys.Remove(apiKey);

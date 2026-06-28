@@ -26,7 +26,8 @@ public class Utils(MyDbContext db)
             project = await _db.Projects.Include(p => p.User).FirstOrDefaultAsync(p => p.Id == projectId);
         }
         if (project == null) return null;
-        var maxRetentionDays = Plans.RetentionDays[project.User.SubscriptionPlan];
+        bool bundledSubActive = project.User.BundledSubscription != null && project.User.BundledSubscription.Plan == Plans.Pro && project.User.BundledSubscription.ExpiresAt > DateTime.UtcNow;
+        var maxRetentionDays = Plans.RetentionDays[bundledSubActive ? Plans.Pro : project.User.SubscriptionPlan];
         var earliestAllowed = DateTime.UtcNow.AddDays(-maxRetentionDays);
         DateTime cutoff;
         DateTime ceiling = to.HasValue ? to.Value.ToUniversalTime() : DateTime.UtcNow;
@@ -43,7 +44,6 @@ public class Utils(MyDbContext db)
             cutoff = DateTime.MinValue;
         }
         if (cutoff < earliestAllowed) cutoff = earliestAllowed;
-
         var views = _db.PageViews.Where(pv => pv.ProjectId == projectId && pv.CreatedAt >= cutoff && pv.CreatedAt <= ceiling);
         var totalViews = await views.CountAsync();
         var viewsPerDay = await views
@@ -123,7 +123,7 @@ public class Utils(MyDbContext db)
             .Take(10)
             .ToListAsync();
         List<TimeOnPage>? timeOnPage = null;
-        if (project.User.SubscriptionPlan == Plans.Pro)
+        if (project.User.SubscriptionPlan == Plans.Pro || bundledSubActive)
         {
             timeOnPage = await _db.Heartbeats
             .Where(h => h.ProjectId == projectId && h.CreatedAt >= cutoff && h.CreatedAt <= ceiling)
@@ -136,7 +136,7 @@ public class Utils(MyDbContext db)
                 .ToListAsync();
         }
         Utm? utmStats = null;
-        if (project.User.SubscriptionPlan == Plans.Pro)
+        if (project.User.SubscriptionPlan == Plans.Pro || bundledSubActive)
         {
             var utmViews = views.Where(pv => pv.UtmSource != null);
             var topSources = await utmViews
@@ -180,7 +180,7 @@ public class Utils(MyDbContext db)
             };
         }
         List<CustomEvent>? customEvents = null;
-        if (project.User.SubscriptionPlan == Plans.Pro)
+        if (project.User.SubscriptionPlan == Plans.Pro || bundledSubActive)
         {
             customEvents = await _db.CustomEvents
                 .Where(e => e.ProjectId == projectId && e.CreatedAt >= cutoff && e.CreatedAt <= ceiling)

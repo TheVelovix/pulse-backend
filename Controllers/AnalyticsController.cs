@@ -43,7 +43,8 @@ public class AnalyticsController(MyDbContext db, ActiveVisitorService activeVisi
         {
             return NotFound();
         }
-        if (project.User.SubscriptionPlan != Plans.Pro)
+        bool bundledExpired = project.User.BundledSubscription == null || project.User.BundledSubscription.ExpiresAt < DateTime.UtcNow;
+        if (project.User.SubscriptionPlan != Plans.Pro && bundledExpired)
         {
             return Forbid("You must be a Pro user to export analytics.");
         }
@@ -61,7 +62,7 @@ public class AnalyticsController(MyDbContext db, ActiveVisitorService activeVisi
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
-        var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId);
+        var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == id && p.UserId == userId, cancellationToken);
         if (project == null) return NotFound();
 
         Response.Headers.ContentType = "text/event-stream";

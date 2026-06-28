@@ -1,5 +1,4 @@
 using pulse.Data;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace pulse.Services;
 

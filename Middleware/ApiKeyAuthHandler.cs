@@ -34,8 +34,8 @@ public class ApiKeyAuthHandler(
 
         if (apiKey == null)
             return AuthenticateResult.Fail("Invalid API key");
-
-        if (apiKey.User.SubscriptionPlan != Plans.Pro)
+        bool bundledSubExpired = apiKey.User.BundledSubscription == null || apiKey.User.BundledSubscription.ExpiresAt < DateTime.UtcNow;
+        if (apiKey.User.SubscriptionPlan != Plans.Pro && bundledSubExpired)
         {
             return AuthenticateResult.Fail("Dev API is a Pro Feature");
         }

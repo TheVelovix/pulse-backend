@@ -41,7 +41,8 @@ public class UserController(MyDbContext db, PaddleService paddleService) : BaseC
         if (userId == null) return Unauthorized();
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null) return Unauthorized();
-        if (user.SubscriptionPlan != Plans.Pro) return Unauthorized("api-key-requires-pro-plan");
+        bool bundledSubExpired = user.BundledSubscription == null || user.BundledSubscription.ExpiresAt < DateTime.UtcNow;
+        if (user.SubscriptionPlan != Plans.Pro && bundledSubExpired) return Unauthorized("api-key-requires-pro-plan");
 
         var apiKeys = await db.ApiKeys.Where(k => k.UserId == userId.Value).ToListAsync();
         var strippedKeys = apiKeys.Select(k => new { name = k.Name, createdAt = k.CreatedAt });
@@ -55,7 +56,8 @@ public class UserController(MyDbContext db, PaddleService paddleService) : BaseC
         if (userId == null) return Unauthorized();
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null) return Unauthorized();
-        if (user.SubscriptionPlan != Plans.Pro) return Unauthorized("api-key-requires-pro-plan");
+        bool bundledSubExpired = user.BundledSubscription == null || user.BundledSubscription.ExpiresAt < DateTime.UtcNow;
+        if (user.SubscriptionPlan != Plans.Pro && bundledSubExpired) return Unauthorized("api-key-requires-pro-plan");
         var existingKey = await db.ApiKeys.FirstOrDefaultAsync(k => k.Name == name && k.UserId == userId);
         if (existingKey != null)
         {
@@ -85,7 +87,8 @@ public class UserController(MyDbContext db, PaddleService paddleService) : BaseC
         if (userId == null) return Unauthorized();
         var user = await db.Users.FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null) return Unauthorized();
-        if (user.SubscriptionPlan != Plans.Pro) return Unauthorized("api-key-requires-pro-plan");
+        bool bundledSubExpired = user.BundledSubscription == null || user.BundledSubscription.ExpiresAt < DateTime.UtcNow;
+        if (user.SubscriptionPlan != Plans.Pro && bundledSubExpired) return Unauthorized("api-key-requires-pro-plan");
         var apiKey = await db.ApiKeys.FirstOrDefaultAsync(k => k.Name == name && k.UserId == userId.Value);
         if (apiKey == null) return NotFound();
         db.ApiKeys.Remove(apiKey);

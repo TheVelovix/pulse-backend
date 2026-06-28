@@ -13,4 +13,5 @@ public class User
     public ICollection<RefreshToken> RefreshTokens { get; set; } = [];
     public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = [];
     public ICollection<ApiKey> ApiKeys { get; set; } = [];
+    public BundledSubscription? BundledSubscription { get; set; }
 }

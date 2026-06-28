@@ -42,11 +42,23 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
         {
             return BadRequest("captcha-failed");
         }
+        BundledSubscription? bundledSubscription = null;
+        if (body.PromotionalCode != null)
+        {
+            var code = await _db.BusinessPromotionalCodes.FirstOrDefaultAsync(c => c.Code == body.PromotionalCode);
+            if (code == null || code.Used) return BadRequest("invalid-promotional-code");
+            bundledSubscription = new BundledSubscription
+            {
+                Plan = code.Plan,
+                ExpiresAt = DateTime.UtcNow.AddDays(code.Duration)
+            };
+        }
         var hashedPassword = BCrypt.Net.BCrypt.HashPassword(body.Password);
         var newUser = new User
         {
             Email = body.Email,
-            Password = hashedPassword
+            Password = hashedPassword,
+            BundledSubscription = bundledSubscription
         };
         await _db.Users.AddAsync(newUser);
         await _db.SaveChangesAsync();
@@ -124,7 +136,13 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
         {
             return NotFound();
         }
-        return Ok(new { user.Id, user.Email, user.SubscriptionPlan });
+        string subscriptionPlan;
+        if (user.BundledSubscription != null && user.BundledSubscription.ExpiresAt > DateTime.UtcNow)
+        {
+            subscriptionPlan = user.BundledSubscription.Plan;
+        }
+        else subscriptionPlan = user.SubscriptionPlan;
+        return Ok(new { user.Id, user.Email, subscriptionPlan });
     }
 
     [Authorize]

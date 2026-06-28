@@ -24,7 +24,8 @@ public class SearchConsoleController(MyDbContext db, IWebHostEnvironment env, IH
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
         var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
-        if (user == null || user.SubscriptionPlan != Plans.Pro) return Forbid("pro-plan-required");
+        bool bundledSubExpired = user?.BundledSubscription == null || user.BundledSubscription.ExpiresAt < DateTime.UtcNow;
+        if (user == null || (user.SubscriptionPlan != Plans.Pro && bundledSubExpired)) return Forbid("pro-plan-required");
         var scope = "https://www.googleapis.com/auth/webmasters.readonly";
         var state = $"{projectId}:{userId}";
         string redirectUri = _isProduction ? "https://pulse.velovix.com/api/search-console/callback" : "http://localhost:5119/api/search-console/callback";
@@ -44,7 +45,8 @@ public class SearchConsoleController(MyDbContext db, IWebHostEnvironment env, IH
 
         var project = await _db.Projects.Include(p => p.User).FirstOrDefaultAsync(p => p.UserId == userId && p.Id == projectId);
         if (project == null) return NotFound("project-not-found");
-        if (project.User.SubscriptionPlan != Plans.Pro) return Forbid("pro-plan-required");
+        bool bundledSubExpired = project.User.BundledSubscription == null || project.User.BundledSubscription.ExpiresAt < DateTime.UtcNow;
+        if (project.User.SubscriptionPlan != Plans.Pro && bundledSubExpired) return Forbid("pro-plan-required");
         // Exchange code for tokens
         var httpClient = httpClientFactory.CreateClient();
         var tokenResponse = await httpClient.PostAsync("https://oauth2.googleapis.com/token", new FormUrlEncodedContent(new Dictionary<string, string>
@@ -99,7 +101,8 @@ public class SearchConsoleController(MyDbContext db, IWebHostEnvironment env, IH
 
         var project = await _db.Projects.Include(p => p.User).FirstOrDefaultAsync(p => p.Id == projectId && p.UserId == userId);
         if (project == null) return NotFound("project-not-found");
-        if (project.User.SubscriptionPlan != Plans.Pro) return Forbid("pro-plan-required");
+        bool bundledSubExpired = project.User.BundledSubscription == null || project.User.BundledSubscription.ExpiresAt < DateTime.UtcNow;
+        if (project.User.SubscriptionPlan != Plans.Pro && bundledSubExpired) return Forbid("pro-plan-required");
         var token = await _db.SearchConsoleTokens.FirstOrDefaultAsync(t => t.ProjectId == projectId);
         if (token == null) return NotFound("search-console-not-connected");
 

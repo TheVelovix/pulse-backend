@@ -21,7 +21,8 @@ public class HeartbeatController(ActiveVisitorService activeVisitorService, MyDb
     {
         var project = await _db.Projects.Include(p => p.User).FirstOrDefaultAsync(p => p.Id == dto.ProjectId);
         if (project == null) return NotFound();
-        if (project.User.SubscriptionPlan != Plans.Pro) return BadRequest();
+        bool bundledSubExpired = project.User.BundledSubscription == null || project.User.BundledSubscription.ExpiresAt < DateTime.UtcNow;
+        if (project.User.SubscriptionPlan != Plans.Pro && bundledSubExpired) return BadRequest();
         _activeVisitorService.RecordHeartBeat(dto.ProjectId, dto.VisitorId);
         _db.Heartbeats.Add(new Heartbeat
         {

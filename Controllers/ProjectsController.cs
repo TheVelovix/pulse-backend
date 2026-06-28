@@ -58,7 +58,8 @@ public class ProjectsController(MyDbContext db) : BaseController
 
         var user = await db.Users.FindAsync(userId);
         if (user == null) return Unauthorized();
-        var projectLimit = Plans.ProjectLimits[user.SubscriptionPlan];
+        bool bundledSubActive = user.BundledSubscription != null && user.BundledSubscription.ExpiresAt > DateTime.UtcNow;
+        var projectLimit = Plans.ProjectLimits[bundledSubActive ? user.BundledSubscription!.Plan : user.SubscriptionPlan];
         var projectsCount = await db.Projects.CountAsync(p => p.UserId == userId);
         if (projectsCount >= projectLimit)
         {

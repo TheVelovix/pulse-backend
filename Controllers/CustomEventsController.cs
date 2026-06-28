@@ -23,7 +23,8 @@ public class EventsController(MyDbContext db) : BaseController
     {
         var project = await _db.Projects.Include(p => p.User).FirstOrDefaultAsync(p => p.Id == body.ProjectId);
         if (project == null) return NotFound("project-not-found");
-        if (project.User.SubscriptionPlan != Plans.Pro) return Forbid("Custom events are a Pro Feature.");
+        bool bundledSubExpired = project.User.BundledSubscription == null || project.User.BundledSubscription.ExpiresAt < DateTime.UtcNow;
+        if (project.User.SubscriptionPlan != Plans.Pro && bundledSubExpired) return Forbid("Custom events are a Pro Feature.");
 
         var session = await _db.Sessions
             .Where(s => s.ProjectId == body.ProjectId && s.VisitorId == body.VisitorId && s.LastActivity >= DateTime.UtcNow.AddMinutes(-30))
