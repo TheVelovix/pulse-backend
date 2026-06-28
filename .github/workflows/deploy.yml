@@ -18,7 +18,13 @@ jobs:
 
       - name: Publish
         run: dotnet publish -c Release -r linux-x64 --self-contained false -o ./publish
-
+      - name: Fix permissions
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: sudo chown -R $USER:$USER /var/www/pulse-backend
       - name: Copy to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
