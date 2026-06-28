@@ -28,6 +28,7 @@ jobs:
           source: ./publish/*
           target: /var/www/pulse-backend
           strip_components: 1
+          overwrite: true
 
       - name: Write .env
         uses: appleboy/ssh-action@v1.0.3
