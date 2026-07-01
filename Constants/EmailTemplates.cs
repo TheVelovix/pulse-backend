@@ -125,7 +125,7 @@ public class EmailTemplates
                     <g transform="translate(-30.6074,-158.97283)">
                       <g transform="translate(-1.0593226,3.4427986)">
                         <path style="fill:#ffffff;" d="m 31.666724,155.53004 32.143821,0.0662 20.160233,34.46109 20.458172,-34.32867 h 31.81278 l -52.403365,91.39968 z"/>
-                        <path style="fill:#3b82f6;" d="m 47.523459,165.69292 12.149108,0.16552 24.364421,42.17428 24.960292,-42.47222 11.48703,0.23173 -36.348011,63.59246 z"/>
+                        <path style="fill:black;" d="m 47.523459,165.69292 12.149108,0.16552 24.364421,42.17428 24.960292,-42.47222 11.48703,0.23173 -36.348011,63.59246 z"/>
                       </g>
                     </g>
                   </svg>
@@ -201,7 +201,7 @@ public class EmailTemplates
                     <g transform="translate(-30.6074,-158.97283)">
                       <g transform="translate(-1.0593226,3.4427986)">
                         <path style="fill:#ffffff;" d="m 31.666724,155.53004 32.143821,0.0662 20.160233,34.46109 20.458172,-34.32867 h 31.81278 l -52.403365,91.39968 z"/>
-                        <path style="fill:#3b82f6;" d="m 47.523459,165.69292 12.149108,0.16552 24.364421,42.17428 24.960292,-42.47222 11.48703,0.23173 -36.348011,63.59246 z"/>
+                        <path style="fill:black;" d="m 47.523459,165.69292 12.149108,0.16552 24.364421,42.17428 24.960292,-42.47222 11.48703,0.23173 -36.348011,63.59246 z"/>
                       </g>
                     </g>
                   </svg>
@@ -305,6 +305,81 @@ public class EmailTemplates
                     <a href="https://pulse.velovix.com" style="color:#3b82f6;text-decoration:none;">pulse.velovix.com</a>.
                   </p>
                   <p style="margin:8px 0 0;color:#6b7280;font-size:12px;">
+                    &copy; {DateTime.UtcNow.Year} Pulse by
+                    <a href="https://velovix.com" style="color:#3b82f6;text-decoration:none;">Velovix</a>
+                  </p>
+                </td>
+              </tr>
+
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+    """;
+    public static string EmailChangeCodeEmail(string code, string newEmail) => $"""
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+      <title>Confirm your new email</title>
+    </head>
+    <body style="margin:0;padding:0;background-color:#0a0a0a;font-family:'Helvetica Neue',Arial,sans-serif;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0a0a0a;padding:40px 16px;">
+        <tr>
+          <td align="center">
+            <table width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+
+              <!-- Logo -->
+              <tr>
+                <td align="center" style="padding-bottom:32px;">
+                  <svg width="48" height="42" viewBox="0 0 104.57499 91.598297" xmlns="http://www.w3.org/2000/svg">
+                    <g transform="translate(-30.6074,-158.97283)">
+                      <g transform="translate(-1.0593226,3.4427986)">
+                        <path style="fill:#ffffff;" d="m 31.666724,155.53004 32.143821,0.0662 20.160233,34.46109 20.458172,-34.32867 h 31.81278 l -52.403365,91.39968 z"/>
+                        <path style="fill:black;" d="m 47.523459,165.69292 12.149108,0.16552 24.364421,42.17428 24.960292,-42.47222 11.48703,0.23173 -36.348011,63.59246 z"/>
+                      </g>
+                    </g>
+                  </svg>
+                  <p style="margin:8px 0 0;color:#f9fafb;font-size:18px;font-weight:600;letter-spacing:-0.3px;">Pulse</p>
+                </td>
+              </tr>
+
+              <!-- Card -->
+              <tr>
+                <td style="background-color:#111111;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:40px 36px;">
+
+                  <h1 style="margin:0 0 12px;color:#f9fafb;font-size:22px;font-weight:600;letter-spacing:-0.3px;">
+                    Confirm your new email
+                  </h1>
+                  <p style="margin:0 0 28px;color:#6b7280;font-size:15px;line-height:1.6;">
+                    We received a request to change the email address on your Pulse account to <span style="color:#f9fafb;font-weight:500;">{newEmail}</span>. Use the code below to confirm this change. This code expires in <span style="color:#f9fafb;font-weight:500;">15 minutes</span>.
+                  </p>
+
+                  <!-- Code box -->
+                  <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                    <tr>
+                      <td align="center">
+                        <div style="display:inline-block;background-color:#0a0a0a;border:1px solid rgba(59,130,246,0.3);border-radius:10px;padding:20px 40px;">
+                          <p style="margin:0;color:#3b82f6;font-size:32px;font-weight:700;letter-spacing:10px;">{code}</p>
+                        </div>
+                      </td>
+                    </tr>
+                  </table>
+
+                  <p style="margin:0;color:#6b7280;font-size:13px;line-height:1.6;text-align:center;">
+                    If you didn't request this change, you can safely ignore this email. Your email address will not be changed.
+                  </p>
+
+                </td>
+              </tr>
+
+              <!-- Footer -->
+              <tr>
+                <td align="center" style="padding-top:28px;">
+                  <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">
                     &copy; {DateTime.UtcNow.Year} Pulse by
                     <a href="https://velovix.com" style="color:#3b82f6;text-decoration:none;">Velovix</a>
                   </p>

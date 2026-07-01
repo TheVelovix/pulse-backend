@@ -20,6 +20,7 @@ public class MyDbContext : DbContext
     public DbSet<CustomEvent> CustomEvents { get; set; }
     public DbSet<SearchConsoleToken> SearchConsoleTokens { get; set; }
     public DbSet<BusinessPromotionalCode> BusinessPromotionalCodes { get; set; }
+    public DbSet<EmailChangeCode> EmailChangeCodes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -76,5 +77,10 @@ public class MyDbContext : DbContext
 
         modelBuilder.Entity<User>()
             .OwnsOne(u => u.BundledSubscription);
+
+        modelBuilder.Entity<EmailChangeCode>()
+            .HasOne<User>()
+            .WithMany()
+            .HasForeignKey(k => k.UserId);
     }
 }
