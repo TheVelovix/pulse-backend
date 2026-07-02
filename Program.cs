@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using pulse.Services;
 using pulse.Data;
-using pulse_backend.Services;
 using UAParser;
 using Microsoft.AspNetCore.Authentication;
 using pulse.Middleware;

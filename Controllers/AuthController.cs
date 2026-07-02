@@ -3,9 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using pulse.Data;
 using pulse.Models;
-using pulse_backend.Services;
-using Microsoft.AspNetCore.Authorization;
 using pulse.Services;
+using Microsoft.AspNetCore.Authorization;
 using pulse.Constants;
 using System.Security.Cryptography;
 using Microsoft.AspNetCore.RateLimiting;
@@ -113,7 +112,7 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
             Secure = true,
             SameSite = SameSiteMode.None,
             Domain = _isProduction ? ".velovix.com" : null,
-            Expires = DateTime.UtcNow.AddHours(1)
+            Expires = DateTime.UtcNow.AddMinutes(20)
         });
         Response.Cookies.Append("refreshToken", tokens.RefreshToken, new CookieOptions
         {
@@ -188,13 +187,13 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
     }
 
     [HttpPatch("reset-password")]
-    public async Task<IActionResult> ResetPassword([FromQuery] string code, [FromQuery] string newPassword)
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest body)
     {
-        var token = await _db.PasswordResetTokens.FirstOrDefaultAsync(t => t.Token == code);
+        var token = await _db.PasswordResetTokens.FirstOrDefaultAsync(t => t.Token == body.Code);
         if (token == null || token.ExpiresAt < DateTime.UtcNow) return BadRequest("invalid-code");
         var user = await _db.Users.FindAsync(token.UserId);
         if (user == null) return NotFound();
-        user.Password = BCrypt.Net.BCrypt.HashPassword(newPassword);
+        user.Password = BCrypt.Net.BCrypt.HashPassword(body.NewPassword);
         await _db.SaveChangesAsync();
         await _db.PasswordResetTokens.Where(t => t.UserId == user.Id).ExecuteDeleteAsync();
 
@@ -248,8 +247,25 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
         await _db.SaveChangesAsync();
         return Ok();
     }
+
+    [Authorize]
+    [HttpDelete("logOutOtherDevices")]
+    public async Task<IActionResult> LogOutOtherDevices()
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+        var currentRefreshToken = Request.Cookies["refreshToken"];
+        if (currentRefreshToken == null) return Unauthorized();
+        await _db.RefreshTokens.Where(t => t.UserId == userId && t.Token != currentRefreshToken).ExecuteDeleteAsync();
+        return Ok();
+    }
 }
 public class EmailChangeBody
 {
     public string Email { get; set; } = string.Empty;
+}
+public class ResetPasswordRequest
+{
+    public string Code { get; set; } = string.Empty;
+    public string NewPassword { get; set; } = string.Empty;
 }

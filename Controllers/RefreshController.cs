@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
-using pulse_backend.Services;
+using pulse.Services;
 using pulse.Models;
 
 namespace pulse.Controllers;

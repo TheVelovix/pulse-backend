@@ -5,7 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using pulse.Data;
 using pulse.Models;
 
-namespace pulse_backend.Services;
+namespace pulse.Services;
 
 public class JwtService(MyDbContext db)
 {
@@ -34,7 +34,7 @@ public class JwtService(MyDbContext db)
             signingCredentials: credentials,
             issuer: Environment.GetEnvironmentVariable("JWT_ISSUER"),
             audience: Environment.GetEnvironmentVariable("JWT_AUDIENCE"),
-            expires: DateTime.UtcNow.AddHours(1)
+            expires: DateTime.UtcNow.AddMinutes(20)
         );
         var reToken = new JwtSecurityToken(
 
