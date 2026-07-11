@@ -6,6 +6,7 @@ using pulse.Models;
 using UAParser;
 using MaxMind.GeoIP2;
 using Microsoft.AspNetCore.Cors;
+using System.Web;
 
 namespace pulse.Controllers;
 
@@ -24,27 +25,23 @@ public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaPar
             domain = $"https://{domain}";
         return Uri.TryCreate(domain, UriKind.Absolute, out var uri) ? uri.Host : domain;
     }
+
     [EnableCors("tracker")]
     [HttpPost]
     [EnableRateLimiting("track")]
-    public async Task<IActionResult> Track(
-        [FromBody] TrackBody body,
-        [FromQuery(Name = "utm_source")] string? utmSource,
-        [FromQuery(Name = "utm_medium")] string? utmMedium,
-        [FromQuery(Name = "utm_campaign")] string? utmCampaign,
-        [FromQuery(Name = "utm_content")] string? utmContent,
-        [FromQuery(Name = "utm_term")] string? utmTerm
-    )
+    public async Task<IActionResult> Track([FromBody] TrackBody body)
     {
         if (_env.IsProduction() && body.Url.Contains("localhost"))
         {
             return BadRequest("invalid-url");
         }
+
         var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == body.ProjectId);
         if (project == null)
         {
             return NotFound("project-not-found");
         }
+
         if (_env.IsProduction())
         {
             var origin = Request.Headers.Origin.FirstOrDefault() ?? Request.Headers.Referer.FirstOrDefault();
@@ -54,11 +51,22 @@ public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaPar
                 return Unauthorized("invalid-origin");
 
             var requestHost = originUri.Host;
-
             var projectHost = ExtractHost(project.Domain);
 
             if (!NormalizeHost(requestHost).Equals(NormalizeHost(projectHost), StringComparison.OrdinalIgnoreCase))
                 return Unauthorized("domain-mismatch");
+        }
+
+        // Parse UTM params from the visited page's URL, not the tracking request's query string
+        string? utmSource = null, utmMedium = null, utmCampaign = null, utmContent = null, utmTerm = null;
+        if (Uri.TryCreate(body.Url, UriKind.Absolute, out var pageUri))
+        {
+            var query = HttpUtility.ParseQueryString(pageUri.Query);
+            utmSource = query["utm_source"];
+            utmMedium = query["utm_medium"];
+            utmCampaign = query["utm_campaign"];
+            utmContent = query["utm_content"];
+            utmTerm = query["utm_term"];
         }
 
         var userAgent = Request.Headers.UserAgent.ToString();
@@ -66,6 +74,7 @@ public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaPar
         var device = clientInfo.Device;
         var os = clientInfo.OS;
         var browser = clientInfo.UA;
+
         string? country = null;
         try
         {
@@ -81,6 +90,7 @@ public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaPar
         {
             Console.WriteLine($"Failed to get country {ex.Message}");
         }
+
         var visitorId = body.VisitorId;
         var session = await _db.Sessions.FirstOrDefaultAsync(s => s.ProjectId == body.ProjectId && s.VisitorId == visitorId && s.LastActivity >= DateTime.UtcNow.AddMinutes(-30));
         if (session == null)
@@ -100,6 +110,7 @@ public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaPar
             session.LastActivity = DateTime.UtcNow;
             session.UpdatedAt = DateTime.UtcNow;
         }
+
         _db.PageViews.Add(new PageView
         {
             ProjectId = body.ProjectId,
@@ -121,6 +132,7 @@ public class TrackController(MyDbContext db, DatabaseReader reader, Parser uaPar
             UtmTerm = utmTerm
         });
         await _db.SaveChangesAsync();
+
         return Ok();
     }
 }
