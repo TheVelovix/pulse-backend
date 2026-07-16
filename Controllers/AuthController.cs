@@ -100,6 +100,15 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
         {
             return BadRequest("invalid-credentials");
         }
+        var deviceType = Request.Headers["X-Device-Type"].ToString();
+        if(deviceType == "mobile"){
+            var jwtTokens = _jwtService.GenerateTokens(user);
+            return Ok(new
+            {
+                accessToken = jwtTokens.AccessToken,
+                refreshToken = jwtTokens.RefreshToken
+            });
+        }
         bool passedTurnstile = await _turnstile.VerifyTurnstile(body.TurnstileToken);
         if (!passedTurnstile)
         {

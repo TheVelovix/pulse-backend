@@ -5,18 +5,18 @@ using pulse.Models;
 
 namespace pulse.Services;
 
-public class WeeklyReportService(IServiceScopeFactory scopeFactory, ILogger<WeeklyReportService> logger) : BackgroundService
+public class WeeklyReportService(IServiceScopeFactory scopeFactory, ILogger<WeeklyReportService> logger, IWebHostEnvironment env) : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
     private readonly ILogger<WeeklyReportService> _logger = logger;
-
+    private readonly bool isProduction = env.IsProduction();
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                await GenerateReportAsync();
+                if(isProduction) await GenerateReportAsync();
             }
             catch (Exception ex)
             {
