@@ -36,13 +36,17 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
         {
             return BadRequest("user-already-exists");
         }
-        bool passedTurnstile = await _turnstile.VerifyTurnstile(body.TurnstileToken);
-        if (!passedTurnstile)
-        {
-            return BadRequest("captcha-failed");
+        var deviceType = Request.Headers["X-Device-Type"].ToString();
+        if(string.IsNullOrWhiteSpace(deviceType) || deviceType != "mobile"){
+            bool passedTurnstile = await _turnstile.VerifyTurnstile(body.TurnstileToken);
+            Console.WriteLine(passedTurnstile);
+            if (!passedTurnstile)
+            {
+                return BadRequest("captcha-failed");
+            }
         }
         BundledSubscription? bundledSubscription = null;
-        if (body.PromotionalCode != null)
+        if (body.PromotionalCode != null && !string.IsNullOrWhiteSpace(body.PromotionalCode))
         {
             var code = await _db.BusinessPromotionalCodes.FirstOrDefaultAsync(c => c.Code == body.PromotionalCode);
             if (code == null || code.Used) return BadRequest("invalid-promotional-code");
@@ -63,6 +67,13 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
         await _db.SaveChangesAsync();
         _ = _emailService.SendAsync(newUser.Email, "Welcome to Pulse", EmailTemplates.Welcome(newUser.Email));
         var tokens = _jwtService.GenerateTokens(newUser);
+        if(deviceType == "mobile"){
+            return Ok(new
+            {
+                accessToken = tokens.AccessToken,
+                refreshToken = tokens.RefreshToken
+            });
+        }
         Response.Cookies.Append("accessToken", tokens.AccessToken, new CookieOptions
         {
             HttpOnly = true,
