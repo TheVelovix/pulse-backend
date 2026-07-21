@@ -37,7 +37,8 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
             return BadRequest("user-already-exists");
         }
         var deviceType = Request.Headers["X-Device-Type"].ToString();
-        if(string.IsNullOrWhiteSpace(deviceType) || deviceType != "mobile"){
+        if (string.IsNullOrWhiteSpace(deviceType) || deviceType != "mobile")
+        {
             bool passedTurnstile = await _turnstile.VerifyTurnstile(body.TurnstileToken);
             Console.WriteLine(passedTurnstile);
             if (!passedTurnstile)
@@ -67,7 +68,8 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
         await _db.SaveChangesAsync();
         _ = _emailService.SendAsync(newUser.Email, "Welcome to Pulse", EmailTemplates.Welcome(newUser.Email));
         var tokens = _jwtService.GenerateTokens(newUser);
-        if(deviceType == "mobile"){
+        if (deviceType == "mobile")
+        {
             return Ok(new
             {
                 accessToken = tokens.AccessToken,
@@ -112,7 +114,8 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
             return BadRequest("invalid-credentials");
         }
         var deviceType = Request.Headers["X-Device-Type"].ToString();
-        if(deviceType == "mobile"){
+        if (deviceType == "mobile")
+        {
             var jwtTokens = _jwtService.GenerateTokens(user);
             return Ok(new
             {
@@ -274,7 +277,15 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
     {
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
-        var currentRefreshToken = Request.Cookies["refreshToken"];
+        var deviceType = Request.Headers["X-Device-Type"].ToString();
+        if (!string.IsNullOrWhiteSpace(deviceType) && deviceType == "mobile")
+        {
+            var refreshToken = Request.Headers["RefreshToken"].ToString();
+            if (string.IsNullOrWhiteSpace(refreshToken)) return Unauthorized();
+            await _db.RefreshTokens.Where(t => t.UserId == userId && t.Token != refreshToken).ExecuteDeleteAsync();
+            return Ok();
+        }
+        var currentRefreshToken = Request.Cookies["RefreshToken"];
         if (currentRefreshToken == null) return Unauthorized();
         await _db.RefreshTokens.Where(t => t.UserId == userId && t.Token != currentRefreshToken).ExecuteDeleteAsync();
         return Ok();

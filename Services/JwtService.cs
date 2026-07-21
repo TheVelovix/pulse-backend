@@ -34,10 +34,9 @@ public class JwtService(MyDbContext db)
             signingCredentials: credentials,
             issuer: Environment.GetEnvironmentVariable("JWT_ISSUER"),
             audience: Environment.GetEnvironmentVariable("JWT_AUDIENCE"),
-            expires: DateTime.UtcNow.AddMinutes(20)
+            expires: DateTime.UtcNow.AddMinutes(10)
         );
         var reToken = new JwtSecurityToken(
-
             claims: claims,
             signingCredentials: credentials,
             issuer: Environment.GetEnvironmentVariable("JWT_ISSUER"),
