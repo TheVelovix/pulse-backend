@@ -20,7 +20,9 @@ public class RefreshController(MyDbContext db, JwtService jwtService, IWebHostEn
     [HttpPost]
     public async Task<IActionResult> NewRefreshToken()
     {
-        var refreshToken = Request.Cookies["refreshToken"];
+        var deviceType = Request.Headers["X-Device-Type"].ToString();
+        var refreshToken = deviceType == "mobile" ? Request.Headers["RefreshToken"].ToString() : Request.Cookies["RefreshToken"];
+        Console.WriteLine($"REFRESH TOKEN: {refreshToken}");
         if (refreshToken == null) return Unauthorized("invalid-refresh-token");
         ClaimsPrincipal principal;
         var jwtHandler = new JwtSecurityTokenHandler();
