@@ -22,7 +22,6 @@ public class RefreshController(MyDbContext db, JwtService jwtService, IWebHostEn
     {
         var deviceType = Request.Headers["X-Device-Type"].ToString();
         var refreshToken = deviceType == "mobile" ? Request.Headers["RefreshToken"].ToString() : Request.Cookies["RefreshToken"];
-        Console.WriteLine($"REFRESH TOKEN: {refreshToken}");
         if (refreshToken == null) return Unauthorized("invalid-refresh-token");
         ClaimsPrincipal principal;
         var jwtHandler = new JwtSecurityTokenHandler();
@@ -40,13 +39,28 @@ public class RefreshController(MyDbContext db, JwtService jwtService, IWebHostEn
             var dbRefreshToken = await _db.RefreshTokens.Include(t => t.User).FirstOrDefaultAsync(t => t.Token == refreshToken && t.UserId == userId);
             if (dbRefreshToken == null) return Unauthorized("invalid-refresh-token");
             var newTokens = _jwtService.GenerateTokens(dbRefreshToken.User);
+            await _db.RefreshTokens.Where(t => t.Token == refreshToken).ExecuteDeleteAsync();
+            _db.RefreshTokens.Add(new RefreshToken
+            {
+                UserId = userId,
+                Token = newTokens.RefreshToken,
+            });
+            await _db.SaveChangesAsync();
+            if (deviceType == "mobile")
+            {
+                return Ok(new
+                {
+                    accessToken = newTokens.AccessToken,
+                    refreshToken = newTokens.RefreshToken
+                });
+            }
             Response.Cookies.Append("accessToken", newTokens.AccessToken, new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,
                 SameSite = SameSiteMode.None,
                 Domain = _isProduction ? ".velovix.com" : null,
-                Expires = DateTime.UtcNow.AddHours(1)
+                Expires = DateTime.UtcNow.AddMinutes(5)
             });
             Response.Cookies.Append("refreshToken", newTokens.RefreshToken, new CookieOptions
             {
@@ -56,13 +70,6 @@ public class RefreshController(MyDbContext db, JwtService jwtService, IWebHostEn
                 Domain = _isProduction ? ".velovix.com" : null,
                 Expires = DateTime.UtcNow.AddDays(7)
             });
-            await _db.RefreshTokens.Where(t => t.Token == refreshToken).ExecuteDeleteAsync();
-            _db.RefreshTokens.Add(new RefreshToken
-            {
-                UserId = userId,
-                Token = newTokens.RefreshToken,
-            });
-            await _db.SaveChangesAsync();
             return Ok("success");
         }
         catch (Exception)

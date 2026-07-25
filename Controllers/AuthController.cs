@@ -40,7 +40,6 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
         if (string.IsNullOrWhiteSpace(deviceType) || deviceType != "mobile")
         {
             bool passedTurnstile = await _turnstile.VerifyTurnstile(body.TurnstileToken);
-            Console.WriteLine(passedTurnstile);
             if (!passedTurnstile)
             {
                 return BadRequest("captcha-failed");
@@ -82,7 +81,7 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
             Secure = true,
             SameSite = SameSiteMode.None,
             Domain = _isProduction ? ".velovix.com" : null,
-            Expires = DateTime.UtcNow.AddHours(1)
+            Expires = DateTime.UtcNow.AddMinutes(5)
         });
         Response.Cookies.Append("refreshToken", tokens.RefreshToken, new CookieOptions
         {
@@ -135,7 +134,7 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
             Secure = true,
             SameSite = SameSiteMode.None,
             Domain = _isProduction ? ".velovix.com" : null,
-            Expires = DateTime.UtcNow.AddMinutes(20)
+            Expires = DateTime.UtcNow.AddMinutes(5)
         });
         Response.Cookies.Append("refreshToken", tokens.RefreshToken, new CookieOptions
         {
@@ -223,7 +222,7 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
         return Ok();
     }
 
-    char[] letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    private readonly char[] letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
     [Authorize]
     [HttpPatch("requestEmailChange")]
