@@ -46,7 +46,7 @@ public class AnalyticsController(MyDbContext db, ActiveVisitorService activeVisi
         bool bundledExpired = project.User.BundledSubscription == null || project.User.BundledSubscription.ExpiresAt < DateTime.UtcNow;
         if (project.User.SubscriptionPlan != Plans.Pro && bundledExpired)
         {
-            return Forbid("You must be a Pro user to export analytics.");
+            return StatusCode(403, "You must be a Pro user to export analytics.");
         }
         var analytics = await _utils.GetProjectAnalytics(project.Id, userId, days, from, to);
         if (analytics == null)

@@ -132,7 +132,7 @@ public class GaImportController(MyDbContext db, IWebHostEnvironment env, IHttpCl
         var project = await _db.Projects.Include(p => p.User).FirstOrDefaultAsync(p => p.UserId == userId && p.Id == projectId);
         if (project == null) return NotFound("project-not-found");
         bool bundledSubExpired = project.User.BundledSubscription == null || project.User.BundledSubscription.ExpiresAt < DateTime.UtcNow;
-        if (project.User.SubscriptionPlan != Plans.Pro && bundledSubExpired) return Forbid("pro-required");
+        if (project.User.SubscriptionPlan != Plans.Pro && bundledSubExpired) return StatusCode(403, "pro-required");
 
         var httpClient = httpClientFactory.CreateClient();
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", body.AccessToken);
