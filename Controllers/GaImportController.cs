@@ -24,13 +24,16 @@ public class GaImportController(MyDbContext db, IWebHostEnvironment env, IHttpCl
 
     [Authorize]
     [HttpGet("connect/{projectId}")]
-    public IActionResult Connect(Guid projectId)
+    public IActionResult Connect(Guid projectId, [FromQuery] string? platform)
     {
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
 
         var scope = "https://www.googleapis.com/auth/analytics.readonly";
-        var state = $"{projectId}:{userId}";
+        // The native app cannot intercept an https redirect, so it asks to be sent
+        // back through the pulse:// custom scheme instead. Carried via state because
+        // Google only echoes back the state parameter.
+        var state = $"{projectId}:{userId}:{(platform == "mobile" ? "mobile" : "web")}";
         var url = $"https://accounts.google.com/o/oauth2/v2/auth" +
                   $"?client_id={_clientId}" +
                   $"&redirect_uri={Uri.EscapeDataString(RedirectUri)}" +
@@ -48,10 +51,11 @@ public class GaImportController(MyDbContext db, IWebHostEnvironment env, IHttpCl
     public async Task<IActionResult> Callback([FromQuery] string code, [FromQuery] string state)
     {
         var parts = state.Split(':');
-        if (parts.Length != 2) return BadRequest("invalid-state");
+        if (parts.Length < 2) return BadRequest("invalid-state");
 
         var projectId = Guid.Parse(parts[0]);
         var userId = long.Parse(parts[1]);
+        var isMobile = parts.Length > 2 && parts[2] == "mobile";
 
         var project = await _db.Projects.FirstOrDefaultAsync(p => p.Id == projectId && p.UserId == userId);
         if (project == null) return NotFound("project-not-found");
@@ -119,6 +123,11 @@ public class GaImportController(MyDbContext db, IWebHostEnvironment env, IHttpCl
         var propertiesParam = Uri.EscapeDataString(JsonSerializer.Serialize(properties));
         var accessTokenParam = Uri.EscapeDataString(accessToken!);
         var refreshTokenParam = Uri.EscapeDataString(refreshToken!);
+
+        // The path must match a real expo-router route: on Android the deep link is
+        // delivered through Linking, so an unmatched path lands on the not-found screen.
+        if (isMobile)
+            return Redirect($"pulse:///GaImport?projectId={projectId}&properties={propertiesParam}&accessToken={accessTokenParam}");
 
         return Redirect($"{frontendUrl}/dashboard/project/{projectId}?ga-properties={propertiesParam}&ga-access-token={accessTokenParam}&ga-refresh-token={refreshTokenParam}");
     }
