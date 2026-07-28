@@ -14,6 +14,21 @@ public class WeeklyReportService(IServiceScopeFactory scopeFactory, ILogger<Week
     {
         while (!stoppingToken.IsCancellationRequested)
         {
+            var now = DateTime.UtcNow;
+            var todayAt8 = new DateTime(now.Year, now.Month, now.Day, 8, 0, 0, DateTimeKind.Utc);
+            DateTime nextRun;
+            if (now.DayOfWeek == DayOfWeek.Monday && now < todayAt8)
+            {
+                nextRun = todayAt8;
+            }
+            else
+            {
+                var daysUntilMonday = ((int)DayOfWeek.Monday - (int)now.DayOfWeek + 7) % 7;
+                if (daysUntilMonday == 0) daysUntilMonday = 7;
+                nextRun = todayAt8.AddDays(daysUntilMonday);
+            }
+            var delay = nextRun - now;
+            await Task.Delay(delay, stoppingToken);
             try
             {
                 if(isProduction) await GenerateReportAsync();
@@ -22,11 +37,6 @@ public class WeeklyReportService(IServiceScopeFactory scopeFactory, ILogger<Week
             {
                 _logger.LogError(ex, "Error in WeeklyReportService");
             }
-            var now = DateTime.UtcNow;
-            var nextMonday = now.AddDays((7 - (int)now.DayOfWeek + 1) % 7 == 0 ? 7 : (7 - (int)now.DayOfWeek + 1) % 7);
-            var nextRun = new DateTime(nextMonday.Year, nextMonday.Month, nextMonday.Day, 8, 0, 0, DateTimeKind.Utc);
-            var delay = nextRun - now;
-            await Task.Delay(delay, stoppingToken);
         }
     }
 

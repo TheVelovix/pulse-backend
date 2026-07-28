@@ -115,6 +115,8 @@ builder.Services.AddHostedService<DataRetentionService>();
 builder.Services.AddSingleton<TurnstileService>();
 builder.Services.AddSingleton<EmailService>();
 builder.Services.AddHostedService<WeeklyReportService>();
+builder.Services.AddHostedService<BundledSubscriptionService>();
+builder.Services.AddHostedService<EmailVerificationCodesService>();
 builder.Services.AddSingleton<ActiveVisitorService>();
 builder.Services.AddScoped<Utils>();
 builder.Services.AddResponseCompression(options =>
