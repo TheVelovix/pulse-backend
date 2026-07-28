@@ -36,14 +36,10 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
         {
             return BadRequest("user-already-exists");
         }
-        var deviceType = Request.Headers["X-Device-Type"].ToString();
-        if (string.IsNullOrWhiteSpace(deviceType) || deviceType != "mobile")
+        bool passedTurnstile = await _turnstile.VerifyTurnstile(body.TurnstileToken);
+        if (!passedTurnstile)
         {
-            bool passedTurnstile = await _turnstile.VerifyTurnstile(body.TurnstileToken);
-            if (!passedTurnstile)
-            {
-                return BadRequest("captcha-failed");
-            }
+            return BadRequest("captcha-failed");
         }
         BundledSubscription? bundledSubscription = null;
         if (body.PromotionalCode != null && !string.IsNullOrWhiteSpace(body.PromotionalCode))
@@ -67,6 +63,7 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
         await _db.SaveChangesAsync();
         _ = _emailService.SendAsync(newUser.Email, "Welcome to Pulse", EmailTemplates.Welcome(newUser.Email));
         var tokens = _jwtService.GenerateTokens(newUser);
+        var deviceType = Request.Headers["X-Device-Type"].ToString();
         if (deviceType == "mobile")
         {
             return Ok(new
@@ -112,22 +109,21 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
         {
             return BadRequest("invalid-credentials");
         }
-        var deviceType = Request.Headers["X-Device-Type"].ToString();
-        if (deviceType == "mobile")
-        {
-            var jwtTokens = _jwtService.GenerateTokens(user);
-            return Ok(new
-            {
-                accessToken = jwtTokens.AccessToken,
-                refreshToken = jwtTokens.RefreshToken
-            });
-        }
         bool passedTurnstile = await _turnstile.VerifyTurnstile(body.TurnstileToken);
         if (!passedTurnstile)
         {
             return BadRequest("captcha-failed");
         }
         var tokens = _jwtService.GenerateTokens(user);
+        var deviceType = Request.Headers["X-Device-Type"].ToString();
+        if (deviceType == "mobile")
+        {
+            return Ok(new
+            {
+                accessToken = tokens.AccessToken,
+                refreshToken = tokens.RefreshToken
+            });
+        }
         Response.Cookies.Append("accessToken", tokens.AccessToken, new CookieOptions
         {
             HttpOnly = true,
