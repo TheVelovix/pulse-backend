@@ -5,6 +5,7 @@ namespace pulse.Models;
 public class SignUpBody
 {
     public string Email { get; set; } = string.Empty;
+    public string VerificationCode { get; set; } = string.Empty;
     [Required]
     [MinLength(8)]
     [RegularExpression(@"^(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).+$",

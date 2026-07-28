@@ -23,6 +23,36 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
     private readonly TurnstileService _turnstile = turnstile;
     private readonly EmailService _emailService = emailService;
 
+    [HttpPost("preSignup")]
+    public async Task<IActionResult> PreSignUp([FromBody] PreSignUpBody body)
+    {
+        bool isValidEmail = _email.IsValid(body.Email);
+        if (!isValidEmail)
+        {
+            return BadRequest("invalid-email");
+        }
+        var existingUser = await _db.Users.FirstOrDefaultAsync(u => u.Email == body.Email);
+        if (existingUser != null)
+        {
+            return BadRequest("user-already-exists");
+        }
+        bool passedTurnstile = await _turnstile.VerifyTurnstile(body.TurnstileToken);
+        if (!passedTurnstile)
+        {
+            return BadRequest("captcha-failed");
+        }
+        var code = RandomNumberGenerator.GetInt32(0, 1000000).ToString("D6");
+        _ = _emailService.SendAsync(body.Email, "Confirm your email", EmailTemplates.PreSignUpCodeEmail(code));
+        var newCodeRecord = new EmailVerificationCode
+        {
+            Code = code,
+            Email = body.Email,
+        };
+        await _db.EmailVerificationCodes.AddAsync(newCodeRecord);
+        await _db.SaveChangesAsync();
+        return Ok();
+    }
+
     [HttpPost("signup")]
     public async Task<IActionResult> Signup([FromBody] SignUpBody body)
     {
@@ -41,6 +71,11 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
         {
             return BadRequest("captcha-failed");
         }
+        var verificationCode = await _db.EmailVerificationCodes.FirstOrDefaultAsync(c => c.Code == body.VerificationCode);
+        if (verificationCode == null || verificationCode.ExpiresAt < DateTime.UtcNow)
+        {
+            return BadRequest("invalid-code");
+        }
         BundledSubscription? bundledSubscription = null;
         if (body.PromotionalCode != null && !string.IsNullOrWhiteSpace(body.PromotionalCode))
         {
@@ -56,6 +91,7 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
         var newUser = new User
         {
             Email = body.Email,
+            EmailVerified = true,
             Password = hashedPassword,
             BundledSubscription = bundledSubscription
         };
@@ -103,6 +139,10 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
         if (user == null)
         {
             return BadRequest("invalid-credentials");
+        }
+        if (!user.EmailVerified)
+        {
+            return BadRequest("email-not-verified");
         }
         var isPasswordValid = BCrypt.Net.BCrypt.Verify(body.Password, user.Password);
         if (!isPasswordValid)
@@ -195,7 +235,7 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
             UserId = user.Id,
             Token = code,
             CreatedAt = DateTime.UtcNow,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(15)
+            ExpiresAt = DateTime.UtcNow.AddMinutes(10)
         };
         _db.PasswordResetTokens.Add(token);
         await _db.SaveChangesAsync();

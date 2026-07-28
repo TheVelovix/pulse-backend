@@ -21,7 +21,7 @@ public class MyDbContext : DbContext
     public DbSet<SearchConsoleToken> SearchConsoleTokens { get; set; }
     public DbSet<BusinessPromotionalCode> BusinessPromotionalCodes { get; set; }
     public DbSet<EmailChangeCode> EmailChangeCodes { get; set; }
-
+    public DbSet<EmailVerificationCode> EmailVerificationCodes { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Project>()
