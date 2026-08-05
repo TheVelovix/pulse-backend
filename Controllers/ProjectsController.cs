@@ -47,7 +47,8 @@ public class ProjectsController(MyDbContext db) : BaseController
             project.CreatedAt,
             project.UpdatedAt,
             project.IsPublic,
-            project.PublicSlug
+            project.PublicSlug,
+            project.ImportedGa
         });
     }
     [HttpPost]

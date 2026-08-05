@@ -8,6 +8,7 @@ public class Project
     public string Domain { get; set; } = string.Empty;
     public bool IsPublic { get; set; } = false;
     public string PublicSlug { get; set; } = string.Empty;
+    public bool ImportedGa {get; set;} = false;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public User User { get; set; } = null!;

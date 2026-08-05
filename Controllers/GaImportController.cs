@@ -218,6 +218,8 @@ public class GaImportController(MyDbContext db, IWebHostEnvironment env, IHttpCl
                 });
             }
         }
+
+        await _db.Projects.Where(p => p.Id == projectId).ExecuteUpdateAsync(s => s.SetProperty(p => p.ImportedGa, true));
         await _db.PageViews.AddRangeAsync(pageViews);
         await _db.SaveChangesAsync();
 
