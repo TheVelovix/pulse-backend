@@ -9,13 +9,15 @@ using pulse.Models;
 using System.Text.RegularExpressions;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
+using System.Net.Http.Headers;
 
 namespace pulse.Controllers;
 
 [ApiController]
 [Authorize(Policy = "ApiKey")]
 [Route("api/v1")]
-public class DeveloperController(MyDbContext db, ActiveVisitorService activeVisitorService, Utils utils, PaddleService paddleService) : BaseController
+public class DeveloperController(MyDbContext db, ActiveVisitorService activeVisitorService, Utils utils, PaddleService paddleService, IWebHostEnvironment env, IHttpClientFactory httpClientFactory) : BaseController
 {
     private readonly MyDbContext _db = db;
     private readonly ActiveVisitorService _activeVisitorService = activeVisitorService;
@@ -241,6 +243,7 @@ public class DeveloperController(MyDbContext db, ActiveVisitorService activeVisi
 
         return Ok(new { key = rawKey });
     }
+
     [HttpDelete("user/apiKeys")]
     public async Task<IActionResult> DeleteApiKey([FromQuery] string name)
     {

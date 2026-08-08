@@ -18,12 +18,18 @@ public class BundledSubscriptionService(IServiceScopeFactory scopeFactory, ILogg
             {
                 using var scope = _scopeFactory.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<MyDbContext>();
-                await db.Users.Where(u => u.BundledSubscription != null && u.BundledSubscription.ExpiresAt < DateTime.UtcNow)
-                    .ExecuteUpdateAsync(s =>
-                        s.SetProperty(u => u.BundledSubscription, (BundledSubscription?)null)
-                        .SetProperty(u => u.UpdatedAt, DateTime.UtcNow),
-                        stoppingToken
-                    );
+
+                var expiredUsers = await db.Users
+                    .Where(u => u.BundledSubscription != null && u.BundledSubscription.ExpiresAt < DateTime.UtcNow)
+                    .ToListAsync(stoppingToken);
+
+                foreach (var user in expiredUsers)
+                {
+                    user.BundledSubscription = null;
+                    user.UpdatedAt = DateTime.UtcNow;
+                }
+
+                await db.SaveChangesAsync(stoppingToken);
             }
             catch (Exception ex)
             {

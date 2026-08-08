@@ -140,6 +140,7 @@ public class GaImportController(MyDbContext db, IWebHostEnvironment env, IHttpCl
         if (userId == null) return Unauthorized();
         var project = await _db.Projects.Include(p => p.User).FirstOrDefaultAsync(p => p.UserId == userId && p.Id == projectId);
         if (project == null) return NotFound("project-not-found");
+        if (project.ImportedGa) return BadRequest("already-imported");
         bool bundledSubExpired = project.User.BundledSubscription == null || project.User.BundledSubscription.ExpiresAt < DateTime.UtcNow;
         if (project.User.SubscriptionPlan != Plans.Pro && bundledSubExpired) return StatusCode(403, "pro-required");
 
@@ -173,7 +174,6 @@ public class GaImportController(MyDbContext db, IWebHostEnvironment env, IHttpCl
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"GA4 data fetch failed: {error}");
             return StatusCode(500, "failed-to-fetch-ga-data");
         }
         var json = await response.Content.ReadAsStringAsync();
