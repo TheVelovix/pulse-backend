@@ -208,7 +208,16 @@ public class AuthController(JwtService jwtService, MyDbContext db, TurnstileServ
     {
         var userId = GetUserId();
         if (userId == null) return Unauthorized();
-        await _db.RefreshTokens.Where(t => t.UserId == userId).ExecuteDeleteAsync();
+        var deviceType = Request.Headers["X-Device-Type"].ToString();
+        if (!string.IsNullOrWhiteSpace(deviceType) && deviceType == "mobile")
+        {
+            var refreshToken = Request.Headers["RefreshToken"].ToString();
+            if (string.IsNullOrWhiteSpace(refreshToken)) return Unauthorized();
+            await _db.RefreshTokens.Where(t => t.UserId == userId && t.Token == refreshToken).ExecuteDeleteAsync();
+            return Ok();
+        }
+        var rToken = Request.Cookies["RefreshToken"];
+        await _db.RefreshTokens.Where(t => t.UserId == userId && t.Token == rToken).ExecuteDeleteAsync();
         var cookieOptions = new CookieOptions
         {
             HttpOnly = true,
