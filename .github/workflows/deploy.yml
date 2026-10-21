@@ -24,7 +24,7 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          script: sudo chown -R $USER:$USER /var/www/pulse-backend
+          script: sudo chown -R $USER:$USER /var/www/pulse
       - name: Copy to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -32,7 +32,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           source: ./publish/*
-          target: /var/www/pulse-backend
+          target: /var/www/pulse
           strip_components: 1
           overwrite: true
 
@@ -43,7 +43,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cat > /var/www/pulse-backend/.env << EOF
+            cat > /var/www/pulse/.env << EOF
             JWT_SECRET=${{ secrets.JWT_SECRET }}
             JWT_ISSUER=${{ secrets.JWT_ISSUER }}
             JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}
@@ -70,4 +70,4 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          script: sudo systemctl restart pulse-backend
+          script: sudo systemctl restart Pulse
