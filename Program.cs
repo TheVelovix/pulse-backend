@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
+using MaxMind.Db;
 using MaxMind.GeoIP2;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -128,7 +129,7 @@ builder.Services.AddHttpClient("favicon")
 builder.Services.AddHttpClient();
 
 builder.Services.AddScoped<JwtService>();
-builder.Services.AddSingleton(new DatabaseReader("GeoData/GeoLite2-Country.mmdb"));
+builder.Services.AddSingleton(new DatabaseReader("GeoData/GeoLite2-Country.mmdb", FileAccessMode.Memory));
 builder.Services.AddSingleton(Parser.GetDefault());
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
